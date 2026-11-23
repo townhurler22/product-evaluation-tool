@@ -10,6 +10,7 @@ export const STATEMENT_BUDGETS = {
   'POST /api/auth/demo': 4,
   'POST /api/auth/sign-out': 2,
   'POST /api/internal/jobs/drain': 3,     // claim + finish per batch; job bodies count separately
+  'POST /api/core/realtime/token': 1,     // preamble; channel rules for boards add 1 in P4
   'GET /api/core/share-links': 3,           // principal + policy + list
   'POST /api/core/share-links': 4,          // principal + policy + insert + audit
   'PATCH /api/core/share-links/:id': 5,
