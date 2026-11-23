@@ -15,6 +15,22 @@ export const STATEMENT_BUDGETS = {
   'POST /api/core/share-links': 4,          // principal + policy + insert + audit
   'PATCH /api/core/share-links/:id': 5,
   'POST /api/core/share-links/:id/revoke': 5,
+  // Workspace admin console (ARC-16). The preamble counts as 1 on a principal-cache miss.
+  'GET /api/core/admin/users': 2,
+  'PATCH /api/core/admin/users/:id': 6,          // lock row, admin count, update, audit
+  'GET /api/core/admin/settings': 2,
+  'PUT /api/core/admin/settings': 13,            // one upsert per key (at most 10), audit, read back
+  'GET /api/core/admin/audit': 2,
+  'GET /api/core/admin/jobs': 2,
+  'POST /api/core/admin/jobs/:id/retry': 3,
+  'GET /api/core/admin/intake/clients': 5,       // clients, keys, outcome counts, module pause
+  'POST /api/core/admin/intake/clients': 4,
+  'PATCH /api/core/admin/intake/clients/:id': 4,
+  'POST /api/core/admin/intake/clients/:id/keys': 6,
+  'POST /api/core/admin/intake/clients/:id/keys/:keyId/revoke': 3,
+  'GET /api/core/admin/intake/clients/:id/log': 2,
+  'POST /api/core/admin/intake/reviews': 3,
+  'PUT /api/core/admin/intake/pause': 3,
 } as const satisfies Record<string, number>;
 
 export type BudgetKey = keyof typeof STATEMENT_BUDGETS;

@@ -92,8 +92,9 @@ export function route<S extends z.ZodType | undefined = undefined>(opts: RouteOp
 
       res.headers.set('Server-Timing', timingHeader(ctx));
       res.headers.set('x-request-id', ctx.requestId);
-      res.headers.set('x-statement-count', String(ctx.statements));
       const budget = STATEMENT_BUDGETS[opts.route];
+      res.headers.set('x-statement-count', String(ctx.statements));
+      res.headers.set('x-statement-budget', String(budget));
       if (ctx.statements > budget) {
         console.warn(JSON.stringify({ level: 'warn', msg: 'statement budget exceeded', route: ctx.route, count: ctx.statements, budget }));
       }
