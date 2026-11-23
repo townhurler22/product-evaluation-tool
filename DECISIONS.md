@@ -15,8 +15,9 @@ Product owner: Shane O'Donnell. Confirmed 23 Nov 2026 unless stated.
 
 | ID | Decision |
 |---|---|
-| OD-01 | **Magic-link email sign-in** for staff (no company identity provider exists), plus a **"Try the demo"** button on the demo instance that signs a visitor in as a seeded demo user. Deviation from default (a) |
-| OD-02 | (a) Single tenant. The owner's permanent data and the public demo are kept apart by running **two deployments of the same code with separate databases**: `private` (permanent, magic link only) and `demo` (seeded, reset nightly, demo button enabled) |
+| OD-01 | **Magic-link email sign-in** for staff (no company identity provider exists), plus a **"Try the demo"** button that signs a visitor in as the shared demo account. Deviation from default (a) |
+| OD-02 | (a) Single tenant, **one deployment and one database** (changed 23 Nov 2026; replaces the earlier two-deployment plan). The demo account works in the same live data as the owner, **can edit it, and is never reset**. The owner accepted that visitors can add to and change the permanent record. Demo actions are audited under the demo user's id, and the demo account can never be a workspace admin |
+| Environments (ARC-37, NFR-40) | **No separate staging.** Migrations run against the live database as their own step before a deploy (NFR-41). The synthetic §13.4 fixture is never loaded into it: statement-count and size checks (PT-16) run on PGlite in CI; timing checks run on the live deployment with its real data, so timing budgets at fixture scale are not proven until a throwaway database is used |
 | OD-13 | (a) Deactivation applies elsewhere within 30 s |
 | OD-26 | 24 months audit log retention |
 | OD-27 | **Vercel** (functions pinned to `dub1`, Dublin) + **Supabase** project in `eu-west-1` (Ireland). Same AWS region, to meet ARC-32 (≤ 5 ms p50) |

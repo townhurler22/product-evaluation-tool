@@ -6,6 +6,6 @@ import { route } from '@/server/http/route';
 export const POST = route({ route: 'POST /api/core/admin/intake/clients/:id/keys', auth: 'required' }, async ({ req, principal, params }) => {
   requireWorkspaceAdmin(principal);
   const { keyId, secret } = await issueKey(principal.userId, params.id);
-  const baseUrl = `${process.env.APP_ORIGIN ?? new URL(req.url).origin}/api/ingest/fh/v1/`;
+  const baseUrl = `${process.env.APP_ORIGIN || new URL(req.url).origin}/api/ingest/fh/v1/`;
   return Response.json({ keyId, secret, baseUrl }, { status: 201, headers: { 'Cache-Control': 'no-store' } });
 });

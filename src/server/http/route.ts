@@ -22,7 +22,7 @@ interface RouteOptions<S extends z.ZodType | undefined> {
 /** SEC-04: Origin must equal ours; without Origin, Sec-Fetch-Site must say same-origin. */
 export function isSameOrigin(req: NextRequest): boolean {
   const origin = req.headers.get('origin');
-  const expected = process.env.APP_ORIGIN ?? new URL(req.url).origin;
+  const expected = process.env.APP_ORIGIN || new URL(req.url).origin;
   if (origin) return origin === expected;
   return req.headers.get('sec-fetch-site') === 'same-origin';
 }

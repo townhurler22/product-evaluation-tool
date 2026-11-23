@@ -41,17 +41,14 @@ export async function seedFixture(db: SqlRunner, scale = 1): Promise<{ companies
 
 export const DEMO_USER_EMAIL = 'demo@example.com';
 
-/** The public demo's sandbox user and a little sample data (OD-02). Re-run nightly by the reset job. */
+/**
+ * The shared demo account (DECISIONS OD-02): lives in the one live database, edits real data, never reset.
+ * Adds only the account, so no sample records are mixed into the owner's data. Idempotent.
+ */
 export async function seedDemo(db: SqlRunner): Promise<void> {
   await db.exec(`
     INSERT INTO core_user (id, email, full_name, role, status)
     VALUES ('0190c3a2-0000-7000-8000-00000000d3e0', '${DEMO_USER_EMAIL}', 'Demo user', 'PRODUCT', 'ACTIVE')
     ON CONFLICT (email) DO UPDATE SET status = 'ACTIVE', role = 'PRODUCT';
-
-    INSERT INTO core_company (id, name, domain, arr) VALUES
-      ('0190c3a0-0000-7000-8000-0000000d0001', 'Northwind Construction', 'northwind.test', 120000.00),
-      ('0190c3a0-0000-7000-8000-0000000d0002', 'Harbour Civil Works', 'harbourcivil.test', 64000.00),
-      ('0190c3a0-0000-7000-8000-0000000d0003', 'Fenwick Developments', 'fenwick.test', 18500.00)
-    ON CONFLICT DO NOTHING;
   `);
 }

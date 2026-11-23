@@ -20,6 +20,6 @@ const Create = z.strictObject({
 });
 
 export const POST = route({ route: 'POST /api/core/share-links', auth: 'required', body: Create }, async ({ req, principal, body }) => {
-  const out = await createShareLink(principal!, body, process.env.APP_ORIGIN ?? new URL(req.url).origin);
+  const out = await createShareLink(principal!, body, process.env.APP_ORIGIN || new URL(req.url).origin);
   return Response.json(out, { status: 201, headers: { 'Cache-Control': 'no-store' } });
 });

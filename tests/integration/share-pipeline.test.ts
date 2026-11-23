@@ -204,6 +204,14 @@ describe('cross-site request protection (SEC-04)', () => {
     expect((await hitShare(voteRoute, token, { method: 'POST', origin: null })).status).toBe(403);
   });
 
+  it('an empty APP_ORIGIN falls back to the request origin (regression)', async () => {
+    process.env.APP_ORIGIN = '';
+    try {
+      const r = await call(magicLinkRoute, { method: 'POST', body: { email: 'owner@example.com' } });
+      expect(r.status).toBe(200);
+    } finally { delete process.env.APP_ORIGIN; }
+  });
+
   it('GETs are not affected', async () => {
     clearPrincipalCache();
     expect((await call(meRoute, { cookie: adminCookie, headers: { origin: 'https://evil.test' } })).status).toBe(200);

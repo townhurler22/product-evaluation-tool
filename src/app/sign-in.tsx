@@ -31,7 +31,7 @@ export default function SignIn({ demo }: { demo: boolean }) {
           <button onClick={tryDemo} className="w-full rounded-lg bg-[var(--accent)] px-5 py-3 font-semibold text-white dark:text-black">
             Try the demo
           </button>
-          <p className="mt-2 text-sm text-[var(--muted)]">A shared sandbox with sample data. It resets every night.</p>
+          <p className="mt-2 text-sm text-[var(--muted)]">A shared demo account in the live workspace. Anything you add is visible to other visitors and is not reset.</p>
         </section>
       )}
       <form onSubmit={sendLink} className="space-y-3" aria-describedby="signin-status">

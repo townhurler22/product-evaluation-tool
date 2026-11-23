@@ -1,4 +1,6 @@
-// `pnpm db:seed --demo` (public demo) or `pnpm db:seed --fixture [--scale 10]` (performance fixture, staging only).
+// `pnpm db:seed --demo` adds the shared demo account to the live database.
+// `pnpm db:seed --fixture [--scale 10] --into-throwaway-database` loads 55,000+ synthetic rows: only ever into a
+// disposable database. The live database is the owner's permanent record (DECISIONS OD-02).
 import { Client } from 'pg';
 import { seedDemo, seedFixture } from '../db/seed';
 
@@ -6,9 +8,8 @@ async function main() {
   const args = process.argv.slice(2);
   const url = process.env.DATABASE_URL_DIRECT;
   if (!url) throw new Error('DATABASE_URL_DIRECT is not set');
-  if (args.includes('--fixture') && process.env.DEMO_MODE !== '1' && !args.includes('--i-know-this-is-not-production')) {
-    // The fixture is synthetic bulk data; never load it into the private (permanent) instance by accident.
-    throw new Error('Refusing to load the fixture outside the demo/staging database');
+  if (args.includes('--fixture') && !args.includes('--into-throwaway-database')) {
+    throw new Error('Refusing to load synthetic fixture data. Pass --into-throwaway-database only for a disposable database.');
   }
   const client = new Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
   await client.connect();
