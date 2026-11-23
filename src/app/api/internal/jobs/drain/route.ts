@@ -13,7 +13,7 @@ function authorised(header: string | null): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-export const POST = route({ route: 'POST /api/internal/jobs/drain', auth: 'none' }, async ({ req }) => {
+export const POST = route({ route: 'POST /api/internal/jobs/drain', auth: 'none', csrf: false }, async ({ req }) => {
   if (!authorised(req.headers.get('authorization'))) throw new ApiError('not_found', 'Not found.');
   return drainJobs();
 });

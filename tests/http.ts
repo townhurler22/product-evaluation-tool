@@ -13,12 +13,14 @@ export interface CallResult<T = unknown> {
 
 export async function call<T = any>( // eslint-disable-line @typescript-eslint/no-explicit-any
   handler: Handler,
-  opts: { method?: string; path?: string; body?: unknown; cookie?: string; headers?: Record<string, string> } = {},
+  opts: { method?: string; path?: string; body?: unknown; cookie?: string; headers?: Record<string, string>; crossSite?: boolean } = {},
 ): Promise<CallResult<T>> {
   const headers = new Headers(opts.headers);
   if (opts.cookie) headers.set('cookie', opts.cookie);
   if (opts.body !== undefined) headers.set('content-type', 'application/json');
   headers.set('x-real-ip', headers.get('x-real-ip') ?? '203.0.113.7');
+  // Browsers send Origin on POST; tests do too unless they are checking SEC-04.
+  if ((opts.method ?? 'GET') !== 'GET' && !headers.has('origin') && !opts.crossSite) headers.set('origin', 'http://localhost:3000');
   const req = new NextRequest(new URL(opts.path ?? '/', 'http://localhost:3000'), {
     method: opts.method ?? 'GET',
     headers,

@@ -15,6 +15,16 @@ interface RouteOptions<S extends z.ZodType | undefined> {
   auth: Auth;
   body?: S;
   maxBodyBytes?: number;
+  /** SEC-04 same-origin check on state-changing requests. Only server-to-server routes turn it off. */
+  csrf?: boolean;
+}
+
+/** SEC-04: Origin must equal ours; without Origin, Sec-Fetch-Site must say same-origin. */
+export function isSameOrigin(req: NextRequest): boolean {
+  const origin = req.headers.get('origin');
+  const expected = process.env.APP_ORIGIN ?? new URL(req.url).origin;
+  if (origin) return origin === expected;
+  return req.headers.get('sec-fetch-site') === 'same-origin';
 }
 
 interface HandlerArgs<S extends z.ZodType | undefined> {
@@ -22,6 +32,7 @@ interface HandlerArgs<S extends z.ZodType | undefined> {
   ctx: RequestContext;
   principal: Principal | null;
   body: S extends z.ZodType ? z.infer<S> : undefined;
+  params: Record<string, string>;
 }
 
 export type Handler<S extends z.ZodType | undefined> = (args: HandlerArgs<S>) => Promise<Response | unknown>;
@@ -34,11 +45,14 @@ function timingHeader(ctx: RequestContext): string {
 }
 
 export function route<S extends z.ZodType | undefined = undefined>(opts: RouteOptions<S>, handler: Handler<S>) {
-  return async (req: NextRequest): Promise<Response> => {
+  return async (req: NextRequest, segment?: { params?: Promise<Record<string, string>> }): Promise<Response> => {
     const ctx = newContext(opts.route, req.headers.get('x-request-id') ?? undefined);
     return runWithContext(ctx, async () => {
       let res: Response;
       try {
+        if (req.method !== 'GET' && req.method !== 'HEAD' && opts.csrf !== false && !isSameOrigin(req)) {
+          throw new ApiError('forbidden', 'Cross-site request refused.');
+        }
         // Steps 2–3: session + principal. ≤ 1 round trip on a cache miss, 0 on a hit (ARC-07).
         let principal: Principal | null = null;
         if (opts.auth !== 'none') {
@@ -64,7 +78,8 @@ export function route<S extends z.ZodType | undefined = undefined>(opts: RouteOp
           body = parsed.data;
         }
 
-        const out = await handler({ req, ctx, principal, body: body as HandlerArgs<S>['body'] });
+        const params = (await segment?.params) ?? {};
+        const out = await handler({ req, ctx, principal, params, body: body as HandlerArgs<S>['body'] });
         res = out instanceof Response ? out : NextResponse.json(out ?? { ok: true });
       } catch (err) {
         if (!(err instanceof ApiError)) {

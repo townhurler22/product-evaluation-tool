@@ -10,6 +10,10 @@ export const STATEMENT_BUDGETS = {
   'POST /api/auth/demo': 4,
   'POST /api/auth/sign-out': 2,
   'POST /api/internal/jobs/drain': 3,     // claim + finish per batch; job bodies count separately
+  'GET /api/core/share-links': 3,           // principal + policy + list
+  'POST /api/core/share-links': 4,          // principal + policy + insert + audit
+  'PATCH /api/core/share-links/:id': 5,
+  'POST /api/core/share-links/:id/revoke': 5,
 } as const satisfies Record<string, number>;
 
 export type BudgetKey = keyof typeof STATEMENT_BUDGETS;

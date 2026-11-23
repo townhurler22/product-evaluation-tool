@@ -12,6 +12,7 @@
     "db:migrate": "tsx scripts/migrate.ts"
   },
   "dependencies": {
+    "@node-rs/argon2": "^2.2.2",
     "@pet/contracts": "workspace:*",
     "@supabase/supabase-js": "^2.119.2",
     "iron-session": "^9.1.1",
