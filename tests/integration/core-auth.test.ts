@@ -11,6 +11,8 @@ import { GET as readyz } from '@/app/api/readyz/route';
 import { requestMagicLink, DEMO_EMAIL } from '@/modules/core/auth/sign-in';
 import { clearPrincipalCache } from '@/modules/core/auth/principal';
 import { newId } from '@/modules/core/util';
+import { listMigrations } from '../../db/migrate';
+import { REQUIRED_MIGRATION } from '@/server/schema-version';
 
 let ctx: Awaited<ReturnType<typeof freshDb>>;
 beforeEach(async () => {
@@ -28,7 +30,7 @@ async function signInAs(email: string): Promise<string> {
 }
 
 describe('migrations', () => {
-  it('apply from empty', () => expect(ctx.applied).toEqual(['0001_core']));
+  it('apply from empty', () => expect(ctx.applied).toEqual(listMigrations().map((m) => m.id)));
 
   it('audit log is append-only', async () => {
     await ctx.pg.query(`INSERT INTO core_audit_log (id, actor_kind, action) VALUES ($1, 'system', 'test')`, [newId()]);
@@ -45,7 +47,7 @@ describe('health (NFR-27)', () => {
   });
   it('readyz checks the schema in one statement', async () => {
     const r = await call(readyz);
-    expect(r.body).toEqual({ ok: true, schema: '0001_core' });
+    expect(r.body).toEqual({ ok: true, schema: REQUIRED_MIGRATION });
     expect(r.statements).toBe(1);
   });
 });
