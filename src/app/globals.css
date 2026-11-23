@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+:root { --bg: #ffffff; --fg: #111827; --muted: #4b5563; --accent: #4338ca; --border: #d1d5db; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0b0d12; --fg: #f3f4f6; --muted: #9ca3af; --accent: #a5b4fc; --border: #374151; }
+}
+body { background: var(--bg); color: var(--fg); font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

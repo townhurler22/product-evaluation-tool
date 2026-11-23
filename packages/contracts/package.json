@@ -1,0 +1,9 @@
+{
+  "name": "@pet/contracts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cross-module types (ARC-04). No runtime dependencies.",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts"
+}
