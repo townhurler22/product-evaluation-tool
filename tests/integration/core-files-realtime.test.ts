@@ -103,7 +103,7 @@ describe('files', () => {
 });
 
 describe('realtime authorisation (§3.7)', () => {
-  const principal = { userId: 'u1', sessionId: 's1', role: 'MEMBER' as const, isFeedbackAdmin: false, isWorkspaceAdmin: false };
+  const principal = { userId: 'u1', sessionId: 's1', role: 'MEMBER' as const, isFeedbackAdmin: false, canDeletePosts: false, isWorkspaceAdmin: false };
 
   it('grants only channels whose rule admits the caller; malformed names are dropped', async () => {
     registerChannelRule('jb.board', async (_p, id) => id === 'board-ok');

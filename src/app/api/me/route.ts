@@ -4,5 +4,6 @@ export const GET = route({ route: 'GET /api/me', auth: 'required' }, async ({ pr
   userId: principal!.userId,
   role: principal!.role,
   isFeedbackAdmin: principal!.isFeedbackAdmin,
+  canDeletePosts: principal!.canDeletePosts,
   isWorkspaceAdmin: principal!.isWorkspaceAdmin,
 }));

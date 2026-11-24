@@ -76,3 +76,28 @@ export async function publish(channel: string, event: string, payload: Record<st
     return false;
   }
 }
+
+/**
+ * Several events on one channel in a single broadcast request (bulk writes publish one `idea.upserted` per row).
+ * Each payload must be under 8 KB; oversized ones are dropped and logged so the caller can send a notice instead.
+ */
+export async function publishMany(channel: string, event: string, payloads: Record<string, unknown>[]): Promise<boolean> {
+  const ok = payloads.filter((p) => Buffer.byteLength(JSON.stringify(p)) <= MAX_PAYLOAD_BYTES);
+  if (ok.length < payloads.length) {
+    console.error(JSON.stringify({ level: 'error', msg: 'realtime payload over 8 KB dropped', channel, event, dropped: payloads.length - ok.length }));
+  }
+  const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key || !ok.length) return false;
+  try {
+    const res = await fetch(`${url}/realtime/v1/api/broadcast`, {
+      method: 'POST',
+      headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: ok.map((payload) => ({ topic: channel, event, payload, private: true })) }),
+    });
+    if (!res.ok) throw new Error(`status ${res.status}`);
+    return true;
+  } catch (e) {
+    console.error(JSON.stringify({ level: 'error', msg: 'realtime publish failed', channel, event, err: String(e) }));
+    return false;
+  }
+}

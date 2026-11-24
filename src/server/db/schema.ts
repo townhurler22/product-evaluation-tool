@@ -182,6 +182,260 @@ export interface IngModuleSetting {
   pause_reason: string | null;
 }
 
+export interface CoreCompany {
+  id: string;
+  name: string;
+  name_key: ColumnType<string, never, never>;
+  domain: string | null;
+  arr: string | null;
+  aliases: Generated<string[]>;
+  prospect_at: Timestamp | null;
+  created_at: Created;
+  updated_at: Created;
+}
+
+export interface CorePerson {
+  id: string;
+  email: string | null;
+  display_name: string | null;
+  verified_at: Timestamp | null;
+  verified_by: string | null;
+  cookie_token_hash: string | null;
+  company_id: string | null;
+  company_source: 'DOMAIN' | 'MANUAL' | 'INTAKE' | null;
+  created_at: Created;
+  last_seen_at: Generated<Date>;
+}
+
+// ── Feedback Hub (0003_fh_core) ───────────────────────────────────────────────
+export type IdeaType = 'FEATURE_REQUEST' | 'IMPROVEMENT' | 'INITIATIVE' | 'BUG' | 'QUESTION';
+export type IdeaStatus = 'OPEN' | 'BACKLOG' | 'UNDER_REVIEW' | 'PLANNED' | 'IN_PROGRESS' | 'COMPLETE' | 'CLOSED';
+export type BugStatus = 'OPEN' | 'TRIAGED' | 'IN_DEV' | 'FIXED' | 'RELEASED' | 'CANNOT_REPRODUCE' | 'CLOSED';
+
+export interface FhGrant {
+  user_id: string;
+  role: 'ADMIN' | null;
+  can_delete_posts: Generated<boolean>;
+  granted_by: string | null;
+  created_at: Created;
+  updated_at: Created;
+}
+
+export interface FhFeature {
+  id: string;
+  parent_id: string | null;
+  name: string;
+  description: string | null;
+  depth: number;
+  sort_order: Generated<number>;
+  created_at: Created;
+  updated_at: Created;
+}
+
+export interface FhFeatureClosure { ancestor_id: string; descendant_id: string; distance: number }
+
+export interface FhFeatureDemand {
+  feature_id: string;
+  open_count: Generated<number>;
+  all_count: Generated<number>;
+  updated_at: Generated<Date>;
+}
+
+export interface FhJourney {
+  id: string;
+  name: string;
+  name_key: ColumnType<string, never, never>;
+  description: string | null;
+  sort_order: Generated<number>;
+  synced_at: Timestamp | null;
+  synced_by: string | null;
+  created_at: Created;
+  updated_at: Created;
+}
+
+export interface FhIdeaJourney { idea_id: string; journey_id: string; created_at: Created }
+
+export interface FhTheme {
+  id: string;
+  name: string;
+  name_key: ColumnType<string, never, never>;
+  colour: string | null;
+  is_seeded: Generated<boolean>;
+  created_at: Created;
+  updated_at: Created;
+}
+
+export interface FhIdeaTheme { idea_id: string; theme_id: string }
+
+export interface FhMilestone {
+  id: string;
+  name: string;
+  date: string;
+  colour: string | null;
+  description: string | null;
+  created_at: Created;
+  updated_at: Created;
+}
+
+export interface FhIdea {
+  id: string;
+  number: ColumnType<string, never, never>;
+  title: string;
+  description: string | null;
+  idea_type: Generated<IdeaType>;
+  status: IdeaStatus | null;
+  bug_status: BugStatus | null;
+  feature_id: string | null;
+  milestone_id: string | null;
+  owner_id: string | null;
+  merged_into_id: string | null;
+  start_date: string | null;
+  due_date: string | null;
+  estimate_days: number | null;
+  strategic_value: number | null;
+  revenue_impact: number | null;
+  customer_experience: number | null;
+  risk_score: number | null;
+  effort_score: number | null;
+  is_dealbreaker: Generated<boolean>;
+  is_committed: Generated<boolean>;
+  reviewed_at: ColumnType<Date | null, Date | string | null | undefined, Date | string | null>;
+  public_summary: string | null;
+  created_by: string | null;
+  version: Generated<number>;
+  search_tsv: ColumnType<string, never, never>;
+  created_at: Created;
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>;
+}
+
+export interface FhIdeaRollup {
+  idea_id: string;
+  user_count: Generated<number>;
+  company_count: Generated<number>;
+  arr: Generated<string>;
+  insight_count: Generated<number>;
+  vote_total: Generated<number>;
+  distinct_voters: Generated<number>;
+  sources: Generated<string[]>;
+  has_intake_source: Generated<boolean>;
+  on_forum: Generated<boolean>;
+  updated_at: Generated<Date>;
+}
+
+export interface FhStatusChange {
+  id: string;
+  idea_id: string;
+  from_status: string | null;
+  to_status: string;
+  actor_id: string | null;
+  comment: string | null;
+  changed_at: Generated<Date>;
+}
+
+export interface FhIdeaEvent {
+  id: string;
+  idea_id: string;
+  actor_id: string | null;
+  actor_label: string | null;
+  field: string;
+  from_value: string | null;
+  to_value: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface FhComment {
+  id: string;
+  idea_id: string;
+  author_id: string | null;
+  body: string | null;
+  edited_at: Timestamp | null;
+  deleted_at: Timestamp | null;
+  created_at: Generated<Date>;
+}
+
+export interface FhInsight {
+  id: string;
+  idea_id: string;
+  value: string;
+  source: Generated<'FORUM' | 'SUPPORT_BUTTON' | 'CALL' | 'MANUAL' | 'CRM' | 'CHAT' | 'EMAIL'>;
+  source_ref: string | null;
+  person_id: string | null;
+  company_id: string | null;
+  staff_user_id: string | null;
+  priority: Generated<'LOW' | 'MEDIUM' | 'HIGH' | 'DEALBREAKER'>;
+  url: string | null;
+  meta: unknown | null;
+  intake_key: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface FhIdeaCompany { idea_id: string; company_id: string; created_at: Created }
+export interface FhIdeaPerson { idea_id: string; person_id: string; created_at: Created }
+
+export interface FhMergeEvent {
+  id: string;
+  source_idea_id: string;
+  target_idea_id: string;
+  actor_id: string | null;
+  snapshot: unknown;
+  merged_at: Generated<Date>;
+}
+
+export interface FhIdeaMatch {
+  idea_id: string;
+  candidate_id: string;
+  score: number;
+  title_hits: number;
+  computed_at: Generated<Date>;
+}
+
+export interface FhForum {
+  id: string;
+  name: string;
+  slug: string;
+  submission_prompt: string | null;
+  is_archived: Generated<boolean>;
+  is_main: Generated<boolean>;
+  created_by: string | null;
+  created_at: Created;
+  updated_at: Created;
+}
+
+export interface FhPost {
+  id: string;
+  forum_id: string;
+  title: string;
+  details: string | null;
+  author_person_id: string | null;
+  author_user_id: string | null;
+  vote_count: Generated<number>;
+  image_count: Generated<number>;
+  created_at: Created;
+  updated_at: Created;
+}
+
+export interface FhIdeaPost { idea_id: string; post_id: string; created_at: Created }
+
+export interface FhVote {
+  id: string;
+  post_id: string;
+  person_id: string | null;
+  user_id: string | null;
+  created_at: Created;
+}
+
+export interface FhSavedView {
+  id: string;
+  name: string;
+  owner_id: string | null;
+  is_shared: Generated<boolean>;
+  config: unknown;
+  sort_order: Generated<number>;
+  created_at: Created;
+  updated_at: Created;
+}
+
 export interface DB {
   core_share_link: CoreShareLink;
   core_share_link_use: CoreShareLinkUse;
@@ -199,4 +453,30 @@ export interface DB {
   core_audit_log: CoreAuditLog;
   core_job: CoreJob;
   core_rate_window: CoreRateWindow;
+  core_company: CoreCompany;
+  core_person: CorePerson;
+  fh_grant: FhGrant;
+  fh_feature: FhFeature;
+  fh_feature_closure: FhFeatureClosure;
+  fh_feature_demand: FhFeatureDemand;
+  fh_journey: FhJourney;
+  fh_idea_journey: FhIdeaJourney;
+  fh_theme: FhTheme;
+  fh_idea_theme: FhIdeaTheme;
+  fh_milestone: FhMilestone;
+  fh_idea: FhIdea;
+  fh_idea_rollup: FhIdeaRollup;
+  fh_status_change: FhStatusChange;
+  fh_idea_event: FhIdeaEvent;
+  fh_comment: FhComment;
+  fh_insight: FhInsight;
+  fh_idea_company: FhIdeaCompany;
+  fh_idea_person: FhIdeaPerson;
+  fh_merge_event: FhMergeEvent;
+  fh_idea_match: FhIdeaMatch;
+  fh_forum: FhForum;
+  fh_post: FhPost;
+  fh_idea_post: FhIdeaPost;
+  fh_vote: FhVote;
+  fh_saved_view: FhSavedView;
 }
