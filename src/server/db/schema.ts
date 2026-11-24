@@ -182,6 +182,132 @@ export interface IngModuleSetting {
   pause_reason: string | null;
 }
 
+// ── Journey Boards (§6.4, migration 0004) ──────────────────────────────────
+type Json = ColumnType<unknown, string, string>;
+
+export interface JbBoard {
+  id: string;
+  name: string;
+  owner_id: string;
+  journey_of_board_id: string | null;
+  journey_of_node_id: string | null;
+  workspace_can_edit: Generated<boolean>;
+  settings: ColumnType<Record<string, unknown>, string | undefined, string>;
+  viewport: ColumnType<{ x: number; y: number; zoom: number } | null, string | null | undefined, string | null>;
+  seq: ColumnType<string, number | string | undefined, number | string>;
+  min_client_protocol: Generated<number>;
+  live_node_count: Generated<number>;
+  live_edge_count: Generated<number>;
+  live_field_count: Generated<number>;
+  compacted_seq: ColumnType<string, number | string | undefined, number | string>;
+  schema_version: Generated<number>;
+  updated_by: string | null;
+  created_at: Created;
+  updated_at: Timestamp;
+}
+
+export interface JbNode {
+  board_id: string;
+  id: string;
+  kind: string;
+  x: number;
+  y: number;
+  width: number | null;
+  height: number | null;
+  z_index: number | null;
+  parent_id: string | null;
+  sort_key: string;
+  data: Json;
+  version: Generated<number>;
+  last_seq: ColumnType<string, number | string, number | string>;
+  deleted_at: Timestamp | null;
+}
+
+export interface JbEdge {
+  board_id: string;
+  id: string;
+  source_id: string;
+  target_id: string;
+  sort_key: string;
+  data: Json;
+  version: Generated<number>;
+  last_seq: ColumnType<string, number | string, number | string>;
+  deleted_at: Timestamp | null;
+}
+
+export interface JbField {
+  board_id: string;
+  id: string;
+  kind: 'picker' | 'text' | 'toggle' | 'date';
+  label: string;
+  options: Json;
+  show_on_card: Generated<boolean>;
+  sort_key: string;
+  preset_key: string | null;
+  extra: Json;
+  version: Generated<number>;
+  last_seq: ColumnType<string, number | string, number | string>;
+  deleted_at: Timestamp | null;
+}
+
+export interface JbChange {
+  board_id: string;
+  seq: ColumnType<string, number | string, never>;
+  batch_id: string;
+  client_id: string;
+  user_id: string | null;
+  ops: Json;
+  result: Json;
+  created_at: Created;
+}
+
+export interface JbSnapshot {
+  board_id: string;
+  seq: ColumnType<string, number | string, never>;
+  reason: 'compaction' | 'manual' | 'import' | 'pre-migration';
+  doc: Json;
+  doc_hash: string;
+  created_at: Created;
+}
+
+export interface JbCollaborator {
+  board_id: string;
+  user_id: string;
+  role: 'EDITOR' | 'COMMENTER' | 'VIEWER';
+  added_by: string | null;
+  created_at: Created;
+}
+
+export interface JbCommentThread {
+  id: string;
+  board_id: string;
+  author_id: string | null;
+  anchor_type: 'BOARD' | 'NODE';
+  anchor_node_id: string | null;
+  x: number;
+  y: number;
+  resolved_at: Timestamp | null;
+  resolved_by: string | null;
+  created_at: Created;
+  updated_at: Timestamp;
+}
+
+export interface JbCommentMessage {
+  id: string;
+  thread_id: string;
+  author_id: string | null;
+  body: string;
+  edited_at: Timestamp | null;
+  created_at: Created;
+}
+
+export interface JbImage {
+  board_id: string;
+  image_id: string;
+  file_id: string;
+  created_at: Created;
+}
+
 export interface DB {
   core_share_link: CoreShareLink;
   core_share_link_use: CoreShareLinkUse;
@@ -199,4 +325,14 @@ export interface DB {
   core_audit_log: CoreAuditLog;
   core_job: CoreJob;
   core_rate_window: CoreRateWindow;
+  jb_board: JbBoard;
+  jb_node: JbNode;
+  jb_edge: JbEdge;
+  jb_field: JbField;
+  jb_change: JbChange;
+  jb_snapshot: JbSnapshot;
+  jb_collaborator: JbCollaborator;
+  jb_comment_thread: JbCommentThread;
+  jb_comment_message: JbCommentMessage;
+  jb_image: JbImage;
 }

@@ -1,3 +1,4 @@
+import '@/server/registrations';
 import { z } from 'zod';
 import { setShareLinkPassword } from '@/modules/core/share/links';
 import { route } from '@/server/http/route';

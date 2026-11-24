@@ -1,2 +1,2 @@
 // Latest migration this build depends on (NFR-43). A unit test keeps it equal to the newest file.
-export const REQUIRED_MIGRATION = '0002_intake_and_share';
+export const REQUIRED_MIGRATION = '0004_jb_core';

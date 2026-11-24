@@ -1,4 +1,5 @@
 // POST core/realtime/token (§11.2): a short-lived token for exactly the channels the caller may join.
+import '@/server/registrations';
 import { z } from 'zod';
 import { authoriseChannels, mintRealtimeToken } from '@/modules/core/realtime';
 import { route } from '@/server/http/route';

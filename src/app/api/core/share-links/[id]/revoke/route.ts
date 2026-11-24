@@ -1,3 +1,4 @@
+import '@/server/registrations';
 import { revokeShareLink } from '@/modules/core/share/links';
 import { route } from '@/server/http/route';
 
