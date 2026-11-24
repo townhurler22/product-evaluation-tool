@@ -1,30 +1,21 @@
 'use client';
 
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-type Me = { role: string; isWorkspaceAdmin: boolean } | null;
-
+/** A signed-in visitor to the start page goes straight to Feedback Hub; an ended session can sign in again. */
 export default function SignedIn() {
-  const [me, setMe] = useState<Me | 'loading'>('loading');
+  const router = useRouter();
+  const [ended, setEnded] = useState(false);
   useEffect(() => {
-    fetch('/api/me').then(async (r) => setMe(r.ok ? await r.json() : null));
-  }, []);
+    fetch('/api/me').then((r) => (r.ok ? router.replace('/fh/ideas') : setEnded(true))).catch(() => setEnded(true));
+  }, [router]);
 
   async function signOut() {
     await fetch('/api/auth/sign-out', { method: 'POST' });
     window.location.reload();
   }
 
-  if (me === 'loading') return <p role="status">Loading…</p>;
-  if (!me) return <p>Your session has ended. <button className="underline" onClick={signOut}>Sign in again</button></p>;
-  return (
-    <div className="space-y-4">
-      <p>You&apos;re signed in ({me.role.toLowerCase()}). Feedback Hub and Journey Boards arrive in phases P1 and P4.</p>
-      <div className="flex gap-3">
-        {me.isWorkspaceAdmin && <Link href="/admin" className="rounded-lg border border-[var(--border)] px-4 py-2">Workspace admin</Link>}
-        <button onClick={signOut} className="rounded-lg border border-[var(--border)] px-4 py-2">Sign out</button>
-      </div>
-    </div>
-  );
+  if (!ended) return <p role="status">Opening Feedback Hub…</p>;
+  return <p>Your session has ended. <button className="underline" onClick={signOut}>Sign in again</button></p>;
 }

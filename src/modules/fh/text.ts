@@ -2,7 +2,6 @@
 // Pure functions shared by client and server.
 
 // C0/C1 controls except tab and newline; bidi overrides/isolates; zero-width characters.
-// eslint-disable-next-line no-control-regex
 const STRIP = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F‪-‮⁦-⁩​-‍﻿]/g;
 
 /** SEC-13. Returns null for empty text. Over-length is the caller's error, never truncated here. */
