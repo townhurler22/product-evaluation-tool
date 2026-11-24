@@ -12,6 +12,7 @@ import { reloadRow, saveField } from '../_lib/edit';
 import { nextSort, widthOf, type Layout } from '../_lib/layout';
 import { rowStore, useRow } from '../_lib/rows';
 import { fmtCount } from '../_lib/selection';
+import { OVERSCAN, ROW_HEIGHT } from '../_lib/table-config';
 import type { ListQuery, Filters } from './ideas-workspace';
 import { Cell } from './cells';
 import CellEditor from './cell-editor';
@@ -19,8 +20,6 @@ import FilterMenu from './filter-menu';
 import BulkBar from './bulk-bar';
 import { btn } from './ui';
 
-export const ROW_HEIGHT = 36;
-export const OVERSCAN = 12;
 
 interface Props {
   view: View; spec: ViewSpecInput; lookups?: Lookups; layout: Layout; onLayout: (l: Layout) => void;

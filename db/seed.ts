@@ -39,6 +39,110 @@ export async function seedFixture(db: SqlRunner, scale = 1): Promise<{ companies
   return { companies, people };
 }
 
+const uid = (prefix: string, expr: string) => `('${prefix}-0000-7000-8000-' || lpad(to_hex(${expr}), 12, '0'))::uuid`;
+
+/**
+ * §13.4 Feedback Hub fixture on top of `seedFixture` (same scale): 50,000 ideas (10% bugs, 5% merged tombstones),
+ * 250,000 insights, 500 Features over three levels, 200 Journeys, 100 themes, 50 milestones, one main forum with
+ * 300 posts and 20,000 votes. Deterministic. Roll-ups are built by the same function the write paths use.
+ * Never load this into the live database (DECISIONS OD-02).
+ */
+export async function seedFeedbackHubFixture(db: SqlRunner, scale = 1) {
+  const n = (x: number) => Math.max(1, Math.round(x * scale));
+  const companies = n(5_000), people = n(50_000), staff = 50;
+  const f0 = n(20), f1 = n(80), f2 = n(400), features = f0 + f1 + f2;
+  const ideas = Math.max(40, n(50_000)), insights = n(250_000), journeys = n(200), themes = n(100), milestones = n(50);
+  const posts = n(300), votes = Math.min(n(20_000), posts * people);
+  await db.exec(`
+    SELECT setseed(0.43);
+    INSERT INTO fh_feature (id, parent_id, name, depth, sort_order)
+    SELECT ${uid('0190c3a4', 'g')},
+      CASE WHEN g <= ${f0} THEN NULL
+           WHEN g <= ${f0 + f1} THEN ${uid('0190c3a4', `1 + (g - ${f0} - 1) % ${f0}`)}
+           ELSE ${uid('0190c3a4', `${f0} + 1 + (g - ${f0 + f1} - 1) % ${f1}`)} END,
+      'Feature ' || g, CASE WHEN g <= ${f0} THEN 0 WHEN g <= ${f0 + f1} THEN 1 ELSE 2 END, g
+    FROM generate_series(1, ${features}) g;
+    INSERT INTO fh_feature_closure (ancestor_id, descendant_id, distance)
+    WITH RECURSIVE tree AS (
+      SELECT id AS ancestor_id, id AS descendant_id, 0 AS distance FROM fh_feature
+      UNION ALL SELECT t.ancestor_id, f.id, t.distance + 1 FROM tree t JOIN fh_feature f ON f.parent_id = t.descendant_id)
+    SELECT ancestor_id, descendant_id, distance FROM tree;
+    INSERT INTO fh_feature_demand (feature_id) SELECT id FROM fh_feature;
+
+    INSERT INTO fh_journey (id, name, sort_order, synced_at)
+    SELECT ${uid('0190c3a7', 'g')}, 'Journey ' || g, g, now() - g * interval '1 hour' FROM generate_series(1, ${journeys}) g;
+    INSERT INTO fh_theme (id, name, colour)
+    SELECT ${uid('0190c3a8', 'g')}, 'Theme ' || g, '#' || lpad(to_hex((g * 2654435) % 16777216), 6, '0') FROM generate_series(1, ${themes}) g;
+    INSERT INTO fh_milestone (id, name, date)
+    SELECT ${uid('0190c3a9', 'g')}, 'Milestone ' || g, DATE '2026-01-05' + g * 14 FROM generate_series(1, ${milestones}) g;
+
+    -- Ideas: every 10th a bug; every 20th merged into the one before it (which is live); every 15th unreviewed.
+    INSERT INTO fh_idea (id, title, description, idea_type, status, bug_status, feature_id, milestone_id, owner_id,
+                         merged_into_id, start_date, due_date, estimate_days, strategic_value, revenue_impact,
+                         customer_experience, risk_score, effort_score, is_dealbreaker, is_committed, reviewed_at, created_at, updated_at)
+    SELECT ${uid('0190c3a5', 'g')},
+      (ARRAY['Export','Import','Faster','Dark mode for','Bulk edit','Filter','Share','Audit'])[1 + g % 8] || ' ' ||
+        (ARRAY['reports','dashboards','projects','tasks','users','invoices','schedules','boards'])[1 + (g / 8) % 8] || ' ' || g,
+      CASE WHEN g % 3 = 0 THEN 'Clients asked for this in calls. Ref ' || g END,
+      CASE WHEN g % 10 = 0 THEN 'BUG' ELSE (ARRAY['FEATURE_REQUEST','IMPROVEMENT','INITIATIVE','QUESTION'])[1 + g % 4] END,
+      CASE WHEN g % 10 = 0 THEN NULL ELSE (ARRAY['OPEN','BACKLOG','UNDER_REVIEW','PLANNED','IN_PROGRESS','COMPLETE','CLOSED'])[1 + (g / 10) % 7] END,
+      CASE WHEN g % 10 = 0 THEN (ARRAY['OPEN','TRIAGED','IN_DEV','FIXED','RELEASED','CANNOT_REPRODUCE','CLOSED'])[1 + (g / 10) % 7] END,
+      CASE WHEN g % 9 = 0 THEN NULL ELSE ${uid('0190c3a4', `1 + g % ${features}`)} END,
+      CASE WHEN g % 6 = 0 THEN ${uid('0190c3a9', `1 + g % ${milestones}`)} END,
+      CASE WHEN g % 5 = 0 THEN NULL ELSE ${uid('0190c3a2', `1 + g % ${staff}`)} END,
+      CASE WHEN g % 20 = 0 THEN ${uid('0190c3a5', 'g - 1')} END,
+      CASE WHEN g % 2 = 0 THEN DATE '2026-01-01' + (g % 400) END,
+      CASE WHEN g % 2 = 0 THEN DATE '2026-01-01' + (g % 400) + (g % 60) END,
+      CASE WHEN g % 2 = 0 THEN g % 60 END,
+      CASE WHEN g % 4 <> 0 THEN 1 + g % 10 END, CASE WHEN g % 4 <> 0 THEN 1 + (g / 3) % 10 END,
+      CASE WHEN g % 4 <> 0 THEN 1 + (g / 5) % 10 END, CASE WHEN g % 4 <> 0 THEN 1 + (g / 7) % 10 END,
+      CASE WHEN g % 4 <> 0 THEN 1 + (g / 11) % 10 END,
+      g % 50 = 0,
+      g % 10 <> 0 AND (g / 10) % 7 IN (3, 4) AND g % 4 = 0,
+      CASE WHEN g % 15 = 0 THEN NULL ELSE now() END,
+      now() - (g % 700) * interval '1 day' - (g % 1440) * interval '1 minute',
+      now() - (g % 90) * interval '1 day' - (g % 1440) * interval '1 minute'
+    FROM generate_series(1, ${ideas}) g;
+
+    -- Evidence attaches to live ideas only (index 20k becomes 20k - 1).
+    INSERT INTO fh_insight (id, idea_id, value, source, person_id, company_id, priority, intake_key)
+    SELECT ${uid('0190c3a6', 'g')},
+      ${uid('0190c3a5', `CASE WHEN (1 + g % ${ideas}) % 20 = 0 THEN g % ${ideas} ELSE 1 + g % ${ideas} END`)},
+      'Client words ' || g,
+      (ARRAY['CALL','SUPPORT_BUTTON','MANUAL','FORUM','MANUAL'])[1 + g % 5],
+      CASE WHEN g % 4 = 0 THEN NULL ELSE ${uid('0190c3a1', `1 + g % ${people}`)} END,
+      CASE WHEN g % 4 = 0 THEN ${uid('0190c3a0', `1 + g % ${companies}`)} END,
+      (ARRAY['LOW','MEDIUM','MEDIUM','HIGH','DEALBREAKER'])[1 + g % 5],
+      CASE WHEN g % 5 IN (0, 1) THEN 'fixture:' || g END
+    FROM generate_series(1, ${insights}) g;
+    INSERT INTO fh_idea_company (idea_id, company_id)
+    SELECT DISTINCT i.idea_id, COALESCE(i.company_id, p.company_id) FROM fh_insight i LEFT JOIN core_person p ON p.id = i.person_id
+    WHERE COALESCE(i.company_id, p.company_id) IS NOT NULL
+    ON CONFLICT DO NOTHING;
+    INSERT INTO fh_idea_person (idea_id, person_id)
+    SELECT DISTINCT idea_id, person_id FROM fh_insight WHERE person_id IS NOT NULL ON CONFLICT DO NOTHING;
+    INSERT INTO fh_idea_theme (idea_id, theme_id)
+    SELECT ${uid('0190c3a5', 'g')}, ${uid('0190c3a8', `1 + g % ${themes}`)} FROM generate_series(1, ${ideas}) g WHERE g % 5 = 0 AND g % 20 <> 0;
+    INSERT INTO fh_idea_journey (idea_id, journey_id)
+    SELECT ${uid('0190c3a5', 'g')}, ${uid('0190c3a7', `1 + g % ${journeys}`)} FROM generate_series(1, ${ideas}) g WHERE g % 7 = 0 AND g % 20 <> 0;
+
+    INSERT INTO fh_forum (id, name, slug, is_main) VALUES ('0190c3aa-0000-7000-8000-000000000001', 'Main forum', 'main', true);
+    INSERT INTO fh_post (id, forum_id, title, author_person_id)
+    SELECT ${uid('0190c3ab', 'g')}, '0190c3aa-0000-7000-8000-000000000001', 'Post ' || g, ${uid('0190c3a1', `1 + g % ${people}`)}
+    FROM generate_series(1, ${posts}) g;
+    INSERT INTO fh_vote (id, post_id, person_id)
+    SELECT ${uid('0190c3ac', 'g + 1')}, ${uid('0190c3ab', `1 + g % ${posts}`)}, ${uid('0190c3a1', `1 + (g / ${posts}) % ${people}`)}
+    FROM generate_series(0, ${votes - 1}) g;
+    UPDATE fh_post p SET vote_count = (SELECT count(*) FROM fh_vote v WHERE v.post_id = p.id);
+    INSERT INTO fh_idea_post (idea_id, post_id)
+    SELECT ${uid('0190c3a5', `CASE WHEN (g * 7) % 20 = 0 THEN g * 7 - 1 ELSE g * 7 END`)}, ${uid('0190c3ab', 'g')}
+    FROM generate_series(1, LEAST(${posts}, ${Math.floor(ideas / 7)})) g;
+
+    SELECT fh_rollup_refresh(ARRAY(SELECT id FROM fh_idea));
+  `);
+  return { ideas, insights, features, journeys, themes, milestones, posts, votes };
+}
+
 export const DEMO_USER_EMAIL = 'demo@example.com';
 
 /**

@@ -9,6 +9,7 @@ import { GET as callback } from '@/app/api/auth/callback/route';
 import { GET as meRoute } from '@/app/api/me/route';
 import { GET as usersRoute } from '@/app/api/core/admin/users/route';
 import { PATCH as userPatch } from '@/app/api/core/admin/users/[id]/route';
+import { PUT as fhGrantPut } from '@/app/api/core/admin/users/[id]/fh-grant/route';
 import { GET as settingsGet, PUT as settingsPut } from '@/app/api/core/admin/settings/route';
 import { GET as auditRoute } from '@/app/api/core/admin/audit/route';
 import { GET as jobsRoute } from '@/app/api/core/admin/jobs/route';
@@ -54,6 +55,7 @@ interface MatrixRoute {
 const ADMIN_ROUTES: MatrixRoute[] = [
   { name: 'GET users', h: usersRoute, method: 'GET' },
   { name: 'PATCH users/:id', h: userPatch, method: 'PATCH', body: { role: 'PRODUCT' }, params: { id: ID } },
+  { name: 'PUT users/:id/fh-grant', h: fhGrantPut, method: 'PUT', body: { admin: true, canDeletePosts: false }, params: { id: ID } },
   { name: 'GET settings', h: settingsGet, method: 'GET' },
   { name: 'PUT settings', h: settingsPut, method: 'PUT', body: { currency: 'EUR' } },
   { name: 'GET audit', h: auditRoute, method: 'GET' },

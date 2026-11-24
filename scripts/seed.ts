@@ -2,7 +2,7 @@
 // `pnpm db:seed --fixture [--scale 10] --into-throwaway-database` loads 55,000+ synthetic rows: only ever into a
 // disposable database. The live database is the owner's permanent record (DECISIONS OD-02).
 import { Client } from 'pg';
-import { seedDemo, seedFixture } from '../db/seed';
+import { seedDemo, seedFeedbackHubFixture, seedFixture } from '../db/seed';
 
 async function main() {
   const args = process.argv.slice(2);
@@ -20,7 +20,7 @@ async function main() {
       const i = args.indexOf('--scale');
       const scale = i >= 0 ? Number(args[i + 1]) : 1;
       const t0 = Date.now();
-      console.log('fixture:', await seedFixture(db, scale), `${Date.now() - t0} ms`);
+      console.log('fixture:', await seedFixture(db, scale), await seedFeedbackHubFixture(db, scale), `${Date.now() - t0} ms`);
     }
   } finally {
     await client.end();
