@@ -280,9 +280,9 @@ describe('live sync (JB-1501, JB-1502, D-24)', () => {
     expect(r.body.seq).toBe(3);
     expect(r.body.batches.map((b: { seq: number }) => b.seq)).toEqual([2, 3]);
     expect(r.body.batches[0].results).toEqual([{ type: 'node', id: 'a', version: 2 }]);
-    expect((await changes(alice, id, 3)).body).toEqual({ seq: 3, batches: [], more: false });
+    expect((await changes(alice, id, 3)).body).toEqual({ seq: 3, batches: [], more: false, demandRev: 0 });
     await ctx.pg.query(`UPDATE jb_board SET compacted_seq = 2 WHERE id = $1`, [id]);
-    expect((await changes(alice, id, 1)).body).toEqual({ resync: true, seq: 3 });
+    expect((await changes(alice, id, 1)).body).toEqual({ resync: true, seq: 3, demandRev: 0 });
     expect((await changes(alice, id, -1)).status).toBe(400);
   });
 });

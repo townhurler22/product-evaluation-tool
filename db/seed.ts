@@ -198,6 +198,34 @@ export async function seedBoardsFixture(db: SqlRunner, scale = 1) {
   return { boards, large, products, journeyCards };
 }
 
+/**
+ * §13.4 Journey mapping part (P5), on top of `seedFixture` and `seedFeedbackHubFixture` at the same scale: every
+ * detailed journey of the demand board gets 3 Product cards linked to 2 Features each, and every odd top-level
+ * Product card links a Journey. Never loaded into the live database.
+ */
+export async function seedMappingFixture(db: SqlRunner, scale = 1) {
+  const products = Math.max(2, Math.round(40 * scale));
+  const n = (x: number) => Math.max(1, Math.round(x * scale));
+  const features = n(20) + n(80) + n(400), journeys = n(200);
+  const demandBoard = `('0190c3a3-0000-7000-8000-' || lpad(to_hex(2), 12, '0'))`;
+  const journeyId = (expr: string) => `('0190c3a4-0000-7000-8000-' || lpad(to_hex(${expr}), 12, '0'))`;
+  const feature = (expr: string) => `('0190c3a4-0000-7000-8000-' || lpad(to_hex(${expr}), 12, '0'))`;
+  await db.exec(`
+    INSERT INTO jb_node (board_id, id, kind, x, y, sort_key, data, last_seq)
+    SELECT ${journeyId('k')}, 'q' || m, 'product-card', m * 300, -300, 'q' || m || 'V', jsonb_build_object('title', 'Step product ' || m), 0
+    FROM generate_series(1, ${products}) k, generate_series(1, 3) m ON CONFLICT DO NOTHING;
+    INSERT INTO core_link (id, relation, from_module, from_kind, from_id, from_scope_id, to_module, to_kind, to_id)
+    SELECT ('0190c3ad-0000-7000-8000-' || lpad(to_hex(k * 10 + m * 2 + e), 12, '0'))::uuid, 'maps-to-feature', 'jb', 'card',
+           ${journeyId('k')} || ':q' || m, ${journeyId('k')}, 'fh', 'feature', ${feature(`1 + (k * 7 + m * 3 + e * 11) % ${features}`)}
+    FROM generate_series(1, ${products}) k, generate_series(1, 3) m, generate_series(0, 1) e ON CONFLICT DO NOTHING;
+    INSERT INTO core_link (id, relation, from_module, from_kind, from_id, from_scope_id, to_module, to_kind, to_id)
+    SELECT ('0190c3ae-0000-7000-8000-' || lpad(to_hex(k), 12, '0'))::uuid, 'maps-to-journey', 'jb', 'card',
+           ${demandBoard} || ':p' || k, ${demandBoard}, 'fh', 'journey', ('0190c3a7-0000-7000-8000-' || lpad(to_hex(1 + (k - 1) % ${journeys}), 12, '0'))
+    FROM generate_series(1, ${products}) k WHERE k % 2 = 1 ON CONFLICT DO NOTHING;
+  `);
+  return { products, linksPerJourney: 6 };
+}
+
 export const DEMO_USER_EMAIL = 'demo@example.com';
 
 /**

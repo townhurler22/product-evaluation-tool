@@ -36,7 +36,7 @@ describe('authorisation matrix (NFR-16)', () => {
     'GET lookups': undefined, 'GET ideas': undefined, 'POST ideas': { title: 'x' }, 'GET ideas/facets': undefined,
     'POST ideas/ids': { viewSpec: {} }, 'POST ideas/export': { viewSpec: {}, columns: ['title'] }, 'GET ideas/[id]': undefined,
     'GET ideas/[id]/evidence': undefined, 'GET ideas/[id]/activity': undefined, 'GET ideas/[id]/matches': undefined,
-    'GET roadmap': undefined, 'GET board': undefined, 'GET features': undefined, 'GET journeys': undefined, 'GET themes': undefined,
+    'GET roadmap': undefined, 'GET board': undefined, 'GET features': undefined, 'GET journeys': undefined, 'GET features/[id]/cards': undefined, 'GET journeys/[id]/cards': undefined, 'GET themes': undefined,
     'GET milestones': undefined, 'GET saved-views': undefined, 'POST saved-views': { name: 'x', config: { version: 1, view: 'all' } },
     'PATCH saved-views/[id]': { name: 'x' }, 'DELETE saved-views/[id]': undefined, 'GET companies': undefined, 'GET people': undefined,
   };

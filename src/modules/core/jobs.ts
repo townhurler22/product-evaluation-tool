@@ -38,11 +38,16 @@ const backoffMs = (attempt: number) => Math.min(60_000 * 2 ** (attempt - 1), 3_6
 /** Claims up to `limit` due jobs with SKIP LOCKED, runs them, records the outcome. */
 export async function drainJobs(limit = 20): Promise<{ ran: number; failed: number }> {
   const db = getDb();
+  // Only kinds this process can run: a function bundle that lacks a handler leaves the job for one that has it,
+  // instead of burning an attempt and backing off (P5: jb.demand.notify must run within a second, D-27).
+  const kinds = [...handlers.keys()];
+  if (!kinds.length) return { ran: 0, failed: 0 };
   const claimed = await sql<{ id: string; kind: string; payload: Record<string, unknown>; attempts: number; max_attempts: number }>`
     UPDATE core_job SET state = 'running', attempts = attempts + 1, locked_until = now() + interval '2 minutes'
     WHERE id IN (
       SELECT id FROM core_job
-      WHERE (state = 'queued' AND run_at <= now()) OR (state = 'running' AND locked_until < now())
+      WHERE ((state = 'queued' AND run_at <= now()) OR (state = 'running' AND locked_until < now()))
+        AND kind = ANY(ARRAY(SELECT jsonb_array_elements_text(${JSON.stringify(kinds)}::jsonb)))
       ORDER BY run_at LIMIT ${limit} FOR UPDATE SKIP LOCKED)
     RETURNING id, kind, payload, attempts, max_attempts`.execute(db);
 

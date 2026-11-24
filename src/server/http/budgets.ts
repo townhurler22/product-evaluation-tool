@@ -109,6 +109,35 @@ export const STATEMENT_BUDGETS = {
   'POST /api/jb/boards/:id/images': 4,
   'POST /api/jb/boards/export': 5,                 // access for all boards, nodes, edges, fields (≤ 20 boards)
   'POST /api/jb/boards/import': 10,                // boards and journeys: 4 inserts each level, list 1
+  // Journey mapping and demand (P5, §9). Each includes the preamble (1 on a principal-cache miss).
+  'GET /api/jb/boards/:id/overlay': 4,             // access, board-scoped links + cards, demandForSets (PERF-30, PERF-B16)
+  'GET /api/jb/boards/:id/nodes/:nodeId/demand': 4, // the overlay's sets for one card (INT-48)
+  'GET /api/jb/boards/:id/nodes/:nodeId/journey': 4,
+  'GET /api/jb/boards/:id/nodes/:nodeId/ideas': 4,  // access, links, ideasUnder (1)
+  'GET /api/jb/boards/:id/nodes/:nodeId/breakdown': 4,
+  'GET /api/jb/boards/:id/feature-search': 3,
+  'GET /api/jb/boards/:id/nodes/:nodeId/links': 4,
+  'POST /api/jb/boards/:id/nodes/:nodeId/links': 6, // access, live card, Feature exists, create, notify
+  'DELETE /api/jb/boards/:id/nodes/:nodeId/links': 4,
+  'POST /api/jb/boards/:id/nodes/:nodeId/journey-sync': 18, // fixed whatever the number of boards (PERF-B19, PT-18)
+  'GET /api/fh/features/:id/cards': 3,             // link read by the to-end + one card resolve (INT-52)
+  'GET /api/fh/journeys/:id/cards': 3,
+  // Cross-module service methods (§11.4, ARC-02, ARC-18): fixed statements whatever the input size, up to their caps.
+  'feedbackHub.demandForSets': 1,
+  'feedbackHub.ideasUnder': 1,
+  'feedbackHub.breakdown': 1,
+  'feedbackHub.searchFeatures': 1,
+  'feedbackHub.resolveFeatures': 1,
+  'feedbackHub.resolveJourneys': 1,
+  'feedbackHub.featureAncestors': 1,
+  'feedbackHub.ensureJourneyComponent': 4,
+  'feedbackHub.assignJourneyIdeas': 1,
+  'journeyBoards.resolveCards': 1,
+  'core.links.linksForBoard': 1,
+  'core.links.listFrom': 1,
+  'core.links.listTo': 1,
+  'core.links.scopesLinkedTo': 1,
+  'core.links.replaceFrom': 2,
 } as const satisfies Record<string, number>;
 
 export type BudgetKey = keyof typeof STATEMENT_BUDGETS;

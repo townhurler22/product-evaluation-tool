@@ -69,8 +69,11 @@ export const CHANGES_PAGE = 200;
 
 export async function changesSince(principal: Principal, boardId: string, since: number) {
   const a = await loadBoard(principal, boardId);
-  if (since < a.row.compacted_seq) return { resync: true as const, seq: a.row.seq };
-  if (since >= a.row.seq) return { seq: a.row.seq, batches: [] as ChangeBatch[], more: false };
+  // D-27: the demand revision rides on the poll every board already makes, so attention flags and demand changes
+  // reach boards without realtime within the polling interval (the client refetches the overlay when it moves).
+  const demandRev = a.row.demand_rev ?? 0;
+  if (since < a.row.compacted_seq) return { resync: true as const, seq: a.row.seq, demandRev };
+  if (since >= a.row.seq) return { seq: a.row.seq, batches: [] as ChangeBatch[], more: false, demandRev };
   const rows = (await sql<{ seq: number; batch_id: string; client_id: string; user_id: string | null; ops: unknown[]; result: { results: unknown[] } }>`
     SELECT seq::float8 AS seq, batch_id, client_id, user_id, ops, result FROM jb_change
     WHERE board_id = ${boardId} AND seq > ${since} ORDER BY seq LIMIT ${CHANGES_PAGE + 1}`.execute(getDb())).rows;
@@ -79,6 +82,7 @@ export async function changesSince(principal: Principal, boardId: string, since:
   return {
     seq: page.length ? page[page.length - 1].seq : a.row.seq,
     more,
+    demandRev,
     batches: page.map((r) => ({ seq: r.seq, batchId: r.batch_id, clientId: r.client_id, userId: r.user_id, ops: r.ops, results: r.result.results })),
   };
 }

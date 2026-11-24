@@ -8,6 +8,7 @@ import { getDb } from '@/server/db';
 import { loadBoard } from './server/access';
 import { readRows } from './server/boards';
 import { resolveBoardShare } from './server/share';
+import './server/mapping'; // P5: registers jb.demand.notify (PERF-31)
 
 // §3.7: jb.board.<id> → viewers of the board (a journey judged by its parent). One statement.
 registerChannelRule('jb.board', async (principal, id) => {

@@ -26,6 +26,8 @@ export interface BoardRow {
   updated_at: Date;
   settings: Record<string, unknown> | null;
   viewport: { x: number; y: number; zoom: number } | null;
+  /** P5 (D-27): bumped when the board's demand overlay may have changed. Absent on list rows. */
+  demand_rev?: number;
 }
 
 export interface BoardAccess { row: BoardRow; rights: Rights }
@@ -58,7 +60,8 @@ export async function loadBoard(principal: Principal, boardId: string, db: Db = 
              coalesce(p.workspace_can_edit, b.workspace_can_edit) AS workspace_can_edit,
              b.workspace_can_edit AS own_workspace_can_edit,
              c.role AS collab_role, b.seq::float8 AS seq, b.compacted_seq::float8 AS compacted_seq,
-             b.min_client_protocol, b.live_node_count, b.created_at, b.updated_at, b.settings, b.viewport
+             b.min_client_protocol, b.live_node_count, b.created_at, b.updated_at, b.settings, b.viewport,
+             b.demand_rev::float8 AS demand_rev
       FROM jb_board b
       LEFT JOIN jb_board p ON p.id = b.journey_of_board_id
       LEFT JOIN jb_collaborator c ON c.board_id = coalesce(b.journey_of_board_id, b.id) AND c.user_id = ${principal.userId}

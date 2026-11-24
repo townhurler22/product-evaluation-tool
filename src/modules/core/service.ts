@@ -13,3 +13,5 @@ export { registerShareManagePolicy } from './share/links';
 export {
   prepareUpload, insertFileRows, discardUploads, deleteFiles, signFileUrls, registerFileOwnerResolver, type PreparedFile,
 } from './files/service';
+// §11.4 link service (ARC-06): the only way Feedback Hub and Journey Boards read or write core_link.
+export * as links from './links';
