@@ -8,7 +8,9 @@ import { COLUMN_BY_ID, COLUMNS, MIN_COLUMN_WIDTH, type ViewSpecInput } from '@/m
 import { statusKeyOf, type View } from '@/modules/fh/domain';
 import type { Lookups } from '../_lib/data';
 import { downloadExport } from '../_lib/api';
-import { reloadRow, saveField } from '../_lib/edit';
+import { AFFECTS_LOOKUPS, reloadRow, saveField } from '../_lib/edit';
+import { useQueryClient } from '@tanstack/react-query';
+import { keys } from '../_lib/data';
 import { nextSort, widthOf, type Layout } from '../_lib/layout';
 import { rowStore, useRow } from '../_lib/rows';
 import { fmtCount } from '../_lib/selection';
@@ -31,6 +33,7 @@ interface Props {
 
 export default function IdeasTable(p: Props) {
   const { layout, ids, isAdmin, lookups } = p;
+  const qc = useQueryClient();
   const cols = useMemo(() => layout.order.filter((c) => !layout.hidden.includes(c) && COLUMN_BY_ID[c]), [layout]);
   const widths = useMemo(() => cols.map((c) => widthOf(layout, c)), [cols, layout]);
   const totalWidth = 44 + widths.reduce((a, b) => a + b, 0);
@@ -66,7 +69,7 @@ export default function IdeasTable(p: Props) {
     setEditing(false);
     const res = await saveField(rowId, col, value);
     if (!res.ok) setMessage({ text: res.conflict ? 'This idea changed since you loaded it.' : res.message ?? 'Could not save.', rowId: res.conflict ? rowId : undefined });
-    else setMessage(null);
+    else { setMessage(null); if (AFFECTS_LOOKUPS.has(col)) void qc.invalidateQueries({ queryKey: keys.lookups }); }
     requestAnimationFrame(focusActive);
   }
 
@@ -131,7 +134,7 @@ export default function IdeasTable(p: Props) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] px-3 py-1.5 text-sm">
-        <span className="font-medium" aria-live="polite">{p.list.isLoading ? 'Loading ideas…' : `${fmtCount(p.total)} ideas`}</span>
+        <span className="font-medium" aria-live="polite">{p.list.isLoading ? 'Loading ideas…' : `${fmtCount(p.total)} ${p.total === 1 ? 'idea' : 'ideas'}`}</span>
         <div className="relative">
           <button className={btn} aria-expanded={showColumns} onClick={() => setShowColumns((x) => !x)}>Columns ({visibleCount}/{allCount})</button>
           {showColumns && <ColumnsMenu layout={layout} onLayout={p.onLayout} onClose={() => setShowColumns(false)} />}

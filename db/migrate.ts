@@ -1,8 +1,9 @@
 // Forward-only SQL migration runner (NFR-41, NFR-42). Shared by the CLI script and tests.
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-export const MIGRATIONS_DIR = join(__dirname, 'migrations');
+// When bundled (the local pglite:memory dev server) __dirname is not this folder; fall back to the project root.
+export const MIGRATIONS_DIR = existsSync(join(__dirname, 'migrations')) ? join(__dirname, 'migrations') : join(process.cwd(), 'db', 'migrations');
 
 /** Minimal surface both `pg` clients and PGlite satisfy. */
 export interface SqlRunner {

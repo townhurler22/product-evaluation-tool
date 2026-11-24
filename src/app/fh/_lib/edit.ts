@@ -6,6 +6,9 @@ import type { IdeaRow } from '@/modules/fh/rows';
 import { api, ApiFailure } from './api';
 import { rowStore } from './rows';
 
+/** Edits that change counts shown in the rail and lookups (Feature, Journey, theme and milestone counts). */
+export const AFFECTS_LOOKUPS = new Set(['feature', 'status', 'type', 'milestone', 'themes']);
+
 export type EditValue = string | number | boolean | null | string[];
 
 /** Maps a column edit to its route and the optimistic change to the row. */

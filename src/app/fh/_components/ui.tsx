@@ -5,7 +5,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { parseMarkdown, type Span } from '@/modules/fh/text';
 import { statusLabel, type StatusKey } from '@/modules/fh/domain';
 
-export const btn = 'inline-flex min-h-6 items-center gap-1 rounded-md border border-[var(--border)] px-2.5 py-1 text-sm font-medium hover:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50';
+export const btn = 'inline-flex min-h-6 items-center gap-1 rounded-md border border-[var(--border)] px-2.5 py-1 text-sm font-medium hover:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50 aria-pressed:bg-[var(--accent)] aria-pressed:text-[var(--accent-fg)]';
 export const btnPrimary = 'inline-flex min-h-6 items-center gap-1 rounded-md bg-[var(--accent)] px-3 py-1 text-sm font-semibold text-[var(--accent-fg)] hover:opacity-90 disabled:opacity-50';
 export const input = 'rounded-md border border-[var(--border)] bg-[var(--bg)] px-2 py-1 text-sm';
 
@@ -46,7 +46,8 @@ export function Dialog({ title, onClose, children, wide }: { title: string; onCl
     const opener = document.activeElement as HTMLElement | null;
     const el = ref.current!;
     const focusables = () => [...el.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter((x) => !x.hasAttribute('disabled'));
-    (focusables()[0] ?? el).focus();
+    // Start in the first field, not on the Close button.
+    (el.querySelector<HTMLElement>('input:not([type=hidden]), select, textarea') ?? focusables()[0] ?? el).focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { e.stopPropagation(); onClose(); }
       if (e.key === 'Tab') {

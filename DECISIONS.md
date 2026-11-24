@@ -58,3 +58,32 @@ Each is flagged to the product owner, per §0 rule 6.
 
 - **Realtime tokens:** the Supabase project signs with asymmetric (ES256) keys. The app mints HS256 tokens, so it needs the project's *legacy* JWT secret in `SUPABASE_JWT_SECRET`. Until that is set, clients fall back to polling. Server-side publishing works.
 - **Owner sign-in in production** needs `RESEND_API_KEY` (magic-link email). Without it only the demo button works.
+
+## P1 Feedback Hub core: deviations and notes (24 Nov 2026)
+
+Flagged to the product owner per §0 rule 6. Each is the nearest sound version of the spec rule.
+
+| Spec | Built | Why |
+|---|---|---|
+| `fh_idea.merged_into_id` FK `ON DELETE SET NULL` (§6.3) | `ON DELETE CASCADE` | Deleting a merge target with SET NULL would bring its tombstones back to life as live ideas. Cascading removes tombstones whose target is gone |
+| `fh_feature_demand` maintained by write paths (§4.11) | Maintained by a trigger on `fh_idea` in the same transaction | Same consistency, and no write path (create, delete, merge, Feature, status or type change, Feature delete via `SET NULL`) can forget it. Nightly reconciliation still checks it |
+| Feature depth trigger (INV-09) | Deferred constraint trigger checked at commit | A subtree move updates every row in one statement; a row-level check would see half-moved trees |
+| `GET ideas` | Also accepts `?ids=` (≤ 100) to reload specific rows | Needed for a deep-linked panel (PERF-12) and the "Reload" action after a 409 (FH-104), without a full list refetch |
+| `?feature=` deep link "applies a Feature column filter covering the Feature and its descendants" (FH-003) | Selects the Feature in the rail with "Include sub-features" on | Same rows; the filter stays visible and clearable. Unknown ids are ignored |
+| Forum tables (`fh_forum`, `fh_post`, `fh_idea_post`, `fh_vote`) | Created in P1; write paths in P3 | The roll-up definition (FH-504) and merge (FH-452) read and move them now. `fh_status_config`, `fh_vote_event` and `fh_reporting_mv` wait for the phases that use them (D-37) |
+| CSV export streams (FH-157) | One statement reads up to 50,000 rows; the response body streams in 500-row chunks | PGlite has no server-side cursors, and a fixed statement count keeps PT-16 stable. First bytes depend on the query time (PT-20 measures it) |
+| §7.7 Triage, publish to forum (FH-411–413) | Not in P1 | Needs the forum (P3). Accept, Unreviewed and duplicate matching are built |
+| Company missing excludes internal calls (FH-405) | Not yet | Internal calls arrive with intake in P2 |
+| Screenshots section and `GET ideas/:id/images` (FH-218) | Not in P1 | Images come only from intake insights (P2) and forum posts (P3) |
+| "Mapped on boards" (FH-222, FH-605, FH-655), `features/:id/cards`, `journeys/:id/cards` | Placeholder text | Needs Journey Boards' `resolveCards` (P4) and card links (P5) |
+| `feedbackHub` cross-module service (§11.4) | Not in P1 | Its callers are Journey mapping (P5). The data it reads (closure, demand counts, in-flight index) is in place |
+| Companies and people (§7.14) | Read-only, searchable pickers (`GET fh/companies`, `GET fh/people`, ≤ 50 rows) | Management is P2. People pickers never return emails |
+| Column reorder by drag (FH-111) | "Move up / Move down" in the Columns menu; widths by drag or arrow keys on the resize handle | The keyboard path NFR-02 requires; drag reorder can follow |
+| Left rail on narrow screens | Hidden below 768 px | Staff editing targets ≥ 1280 px (NFR-11); filters from the rail stay applied |
+| NFR-07 axe-core in Playwright and screen-reader pass; NFR-17 E2E journeys | Not run | There is no Playwright harness yet (same as P0). Grid semantics, focus management, labels and live regions are built in; the pass is owed before P6 |
+| PT-04 (scroll 5,000 rows at 60 fps), PT-05 client half, PT-01 paint | Not automated | Browser measurements. `scripts/perf-p1.ts` measures the server halves; PT-04 is a DevTools check |
+| Timing budgets at fixture scale | Measured on the live data by `pnpm perf:p1 <url>` | Per OD-02 the synthetic fixture never loads into the live database. Statement counts and payload sizes are proven at 1× and 10× on PGlite (PT-16) |
+
+New dependencies: `@tanstack/react-query` 5 (client cache, §4.3 default) and `@tanstack/react-virtual` 3 (virtualised table and board columns). Both are actively maintained by TanStack.
+
+Operations: re-run `pnpm supabase:setup` to add the nightly `fh.reconcile` cron job, and `pnpm db:migrate` before deploying P1 (migration `0003_fh_core`).

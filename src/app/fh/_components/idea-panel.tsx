@@ -10,7 +10,7 @@ import {
 import type { IdeaRow } from '@/modules/fh/rows';
 import { api, ApiFailure } from '../_lib/api';
 import { keys, removeFromLists, type Lookups } from '../_lib/data';
-import { saveField, type EditValue } from '../_lib/edit';
+import { AFFECTS_LOOKUPS, saveField, type EditValue } from '../_lib/edit';
 import { useLiveChannels } from '../_lib/live';
 import { rowStore, useRow } from '../_lib/rows';
 import { orderedFeatures } from './cells';
@@ -113,6 +113,7 @@ export default function IdeaPanel({ id, lookups, isAdmin, onClose, onOpen, onNav
     if (!r.ok) setError(r.message ?? 'Could not save.'); else setError('');
     if (r.ok && ['title', 'description', 'publicSummary', 'themes', 'companies'].includes(col)) qc.invalidateQueries({ queryKey: keys.detail('summary', id) });
     if (r.ok) qc.invalidateQueries({ queryKey: keys.detail('activity', id) });
+    if (r.ok && AFFECTS_LOOKUPS.has(col)) qc.invalidateQueries({ queryKey: keys.lookups });
     return r.ok;
   };
 
@@ -123,7 +124,7 @@ export default function IdeaPanel({ id, lookups, isAdmin, onClose, onOpen, onNav
   }
 
   const shell = (children: ReactNode) => (
-    <aside aria-label="Idea" className="fixed inset-0 z-40 flex flex-col overflow-hidden bg-[var(--bg)] lg:static lg:z-auto lg:w-[34rem] lg:shrink-0 lg:border-l lg:border-[var(--border)]">
+    <aside aria-label="Idea" className="fixed inset-0 z-40 flex flex-col overflow-hidden bg-[var(--bg)] xl:static xl:z-auto xl:w-[34rem] xl:shrink-0 xl:border-l xl:border-[var(--border)]">
       {children}
     </aside>
   );
@@ -264,11 +265,11 @@ export default function IdeaPanel({ id, lookups, isAdmin, onClose, onOpen, onNav
           <Section title="Details">
             <div className="space-y-2 text-sm">
               <Field label="Status">{isAdmin && key ? (
-                <select className={`${input} w-full`} value={key} onChange={(e) => void save('status', e.target.value)}>
+                <select aria-label="Status" className={`${input} w-full`} value={key} onChange={(e) => void save('status', e.target.value)}>
                   {allowedTargets(key).map((k) => <option key={k} value={k}>{statusLabel(k)}</option>)}
                 </select>) : <StatusPill status={key} />}</Field>
               <Field label="Type">{isAdmin ? (
-                <select className={`${input} w-full`} value={row.ideaType} onChange={(e) => void save('type', e.target.value)}>
+                <select aria-label="Type" className={`${input} w-full`} value={row.ideaType} onChange={(e) => void save('type', e.target.value)}>
                   {IDEA_TYPES.map((t) => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}
                 </select>) : TYPE_LABEL[row.ideaType]}</Field>
               <SelectField label="Milestone" disabled={!isAdmin} value={row.milestoneId} onChange={(v) => save('milestone', v)}

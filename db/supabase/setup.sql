@@ -47,3 +47,6 @@ SELECT cron.schedule('pet-retention', '30 2 * * *',
   $cron$INSERT INTO core_job (id, kind) VALUES (gen_random_uuid(), 'core.retention')$cron$);
 SELECT cron.schedule('pet-logs-prune', '0 3 1 * *',
   $cron$INSERT INTO core_job (id, kind) VALUES (gen_random_uuid(), 'core.logs.prune')$cron$);
+-- Feedback Hub nightly reconciliation of roll-ups, Feature demand and the closure table (§4.11, INV-18). P1.
+SELECT cron.schedule('pet-fh-reconcile', '45 2 * * *',
+  $cron$INSERT INTO core_job (id, kind) VALUES (gen_random_uuid(), 'fh.reconcile')$cron$);
