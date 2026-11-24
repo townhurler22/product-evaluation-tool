@@ -12,7 +12,8 @@
     "db:migrate": "tsx scripts/migrate.ts",
     "supabase:setup": "tsx scripts/supabase-setup.ts",
     "db:seed": "tsx scripts/seed.ts",
-    "perf:p0": "tsx scripts/perf-p0.ts"
+    "perf:p0": "tsx scripts/perf-p0.ts",
+    "perf:p4": "tsx scripts/perf-p4.ts"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.2.2",
