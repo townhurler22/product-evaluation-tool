@@ -45,5 +45,8 @@ SELECT cron.schedule('pet-files-sweep', '15 2 * * *',
   $cron$INSERT INTO core_job (id, kind) VALUES (gen_random_uuid(), 'core.files.sweep')$cron$);
 SELECT cron.schedule('pet-retention', '30 2 * * *',
   $cron$INSERT INTO core_job (id, kind) VALUES (gen_random_uuid(), 'core.retention')$cron$);
+-- JB-1606 / OD-25: nightly board change-log compaction (snapshots, 30-day change rows and tombstones).
+SELECT cron.schedule('pet-jb-compact', '45 2 * * *',
+  $cron$INSERT INTO core_job (id, kind) VALUES (gen_random_uuid(), 'jb.compact')$cron$);
 SELECT cron.schedule('pet-logs-prune', '0 3 1 * *',
   $cron$INSERT INTO core_job (id, kind) VALUES (gen_random_uuid(), 'core.logs.prune')$cron$);

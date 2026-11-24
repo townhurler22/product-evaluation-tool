@@ -58,3 +58,24 @@ Each is flagged to the product owner, per §0 rule 6.
 
 - **Realtime tokens:** the Supabase project signs with asymmetric (ES256) keys. The app mints HS256 tokens, so it needs the project's *legacy* JWT secret in `SUPABASE_JWT_SECRET`. Until that is set, clients fall back to polling. Server-side publishing works.
 - **Owner sign-in in production** needs `RESEND_API_KEY` (magic-link email). Without it only the demo button works.
+
+## P4 Journey Boards: choices and deviations (24 Nov 2026)
+
+| Topic | Decision | Why |
+|---|---|---|
+| Canvas library | **@xyflow/react 12** (React Flow, MIT, maintained by xyflow). PERF-21 already assumes it | Pan, zoom, viewport culling (`onlyRenderVisibleElements`), handles, connections, rubber-band selection and a minimap would otherwise be hand-written. Its own keyboard handling is off; the board handles the NFR-04 keys |
+| Board ids | `jb_board.id` is text as in §6.4, but board ids are **always UUIDs** (a client-supplied id must be a UUID) | `core_share_link.target_id` is `uuid` and the share-links route validates UUIDs. Node, edge and field ids stay free text (`[A-Za-z0-9_-]{1,64}`) |
+| Patch merge depth | Data merges one level deep (JB-1601) **plus** `fieldValues.<fieldId>` keys merge one level deeper (SQL function `jb_merge_data`) | Two people setting different field values on one card must both win (JB-1605, JB-1703 key `fieldValues.<fieldId>`) |
+| Restore ops | The server fills `value` (the restored row) into stored restore ops | Tombstones are never sent on load (D-22), so other clients need the row to show it |
+| Batch statements | Lock, seq and replay check are one statement; change row, counters and board patch are one; at most 2 per table; at most 1 integrity query. A 50-op patch batch is 4 statements plus the preamble; the route budget is 12 for the worst mixed batch | PERF-25 / PT-13: ≤ 8 for a 50-op batch and equal on 200 and 2,000 nodes (tested) |
+| Arrow keys | Arrows move **focus** to the nearest card (NFR-04); **Alt+arrows** move the selection by 8, Shift+Alt by 1 | JB-204 and NFR-04 disagree on plain arrows; accessibility wins. Flagged to the product owner |
+| Live updates fallback | Realtime needs `SUPABASE_JWT_SECRET` (server) and `NEXT_PUBLIC_SUPABASE_ANON_KEY` (browser). Without them a board polls `changes?since=` every 1 s while visible (10 s hidden); presence and cursors are then off, quietly | Production has no legacy JWT secret yet (P0 known gap). Polling converges through seq ordering |
+| Image downscaling | On the **server** with sharp (long edge over 2,560 px becomes JPEG 0.9) before metadata stripping | One place, same result for every client. The 5 MB cap still applies |
+| Image cache | Signed URLs are cached in memory per board view, not in IndexedDB; offline image uploads are not queued | Deviation from JB-1803; low value at demo scale |
+| Import parsing | Validated on the server with the route schema (first error path returned), not in a Web Worker; export does not embed images; large rebases run on the main thread | Deviation from JB-1901/1902 and PERF-06 |
+| Not built in P4 | Ctrl/Cmd+K cross-board search (JB-107); smart-guide lines (JB-204; the 512-unit grid exists in `DragSession`); "Create sub-item / linked card" when a connection is dropped on empty canvas (JB-701); reparent by dropping onto a card (JB-802; a "Parent" picker in the panel instead); touch box-select (JB-203); bulk align, distribute and Set field (JB-206); "mixed" state in a multi-select text toolbar (JB-602) | Each is additive. Detailed-journey creation exists in the API; the "Detailed journey" button belongs to P5 (§9.2). The Product card panel has an extension slot (`productPanelSlots`) and the node registry is shared |
+| Sanitiser | `src/lib/text.ts` (SEC-13, SEC-15), applied server-side to board names and node and connector text keys | Feedback Hub needs the same functions; keep one copy when P1 merges |
+| Core service interface | `src/modules/core/service.ts` re-exports what other modules may use | The ARC-03 lint rule only allows `@/modules/core/service` from `src/modules/jb/**` |
+| Registrations | `src/server/registrations.ts` imports `@/modules/jb/register` (channel rule, share resolver and policy, file owner resolver, `jb.compact` job); the realtime token and share-link routes import it. `db/supabase/setup.sql` schedules `jb.compact` nightly | Registries fill at import time, as with jobs |
+
+**Timing budgets (PT-09 to PT-13, PT-15)** are not measured here. `pnpm perf:p4 https://<deployment>` measures PT-09, PT-10 (server side), PT-13 and PT-15 on boards it creates (named `[perf-p4] …`, deleted afterwards) and prints the browser-only checks (PT-10 interactive time, PT-11, PT-12) as MANUAL steps. Statement counts are tested on PGlite, including the base and 10× fixture (PT-16).
