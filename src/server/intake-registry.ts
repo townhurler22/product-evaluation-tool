@@ -1,2 +1,2 @@
-// Imports every module that registers intake routes (ING-04). Feedback Hub's routes are added in P2.
-export {};
+// Imports every module that registers intake routes (ING-04).
+import '@/modules/fh/intake';

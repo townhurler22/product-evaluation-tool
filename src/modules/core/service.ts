@@ -13,3 +13,9 @@ export { registerShareManagePolicy } from './share/links';
 export {
   prepareUpload, insertFileRows, discardUploads, deleteFiles, signFileUrls, registerFileOwnerResolver, type PreparedFile,
 } from './files/service';
+export { registerIntakeRoute, type IntakeClient, type IntakeHandlerResult } from './intake/registry';
+export {
+  resolveForIntake, normaliseDomain, emailDomain, companyNameKey, type IntakeResolution,
+} from './people';
+export { registerErasureParticipant, runErasure, type ErasureOutcome } from './erasure';
+export { normaliseEmail } from './util';

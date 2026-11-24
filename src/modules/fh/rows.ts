@@ -38,7 +38,7 @@ export interface IdeaRow {
   sources: string[];
   hasIntakeSource: boolean;
   onForum: boolean;
-  /** FH-405 (internal-call exception arrives with intake in P2). */
+  /** FH-405: an external intake source (internal calls excluded) and no company in the roll-up. */
   companyMissing: boolean;
   themeIds: string[];
   journeyIds: string[];
@@ -61,7 +61,7 @@ export const ROW_COLUMNS = sql`
   COALESCE(r.vote_total, 0) AS "voteTotal", COALESCE(r.distinct_voters, 0) AS "distinctVoters",
   COALESCE(r.sources, '{}') AS sources, COALESCE(r.has_intake_source, false) AS "hasIntakeSource",
   COALESCE(r.on_forum, false) AS "onForum",
-  (COALESCE(r.has_intake_source, false) AND COALESCE(r.company_count, 0) = 0) AS "companyMissing",
+  (COALESCE(r.external_intake, false) AND COALESCE(r.company_count, 0) = 0) AS "companyMissing",
   ARRAY(SELECT t.theme_id::text FROM fh_idea_theme t WHERE t.idea_id = i.id ORDER BY t.theme_id) AS "themeIds",
   ARRAY(SELECT j.journey_id::text FROM fh_idea_journey j WHERE j.idea_id = i.id ORDER BY j.journey_id) AS "journeyIds",
   COALESCE((SELECT json_agg(json_build_object('id', c.id, 'name', c.name) ORDER BY c.name_key)

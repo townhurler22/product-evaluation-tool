@@ -13,7 +13,8 @@ const TRUE = sql`true`;
 
 const STATUS_KEY_SQL = sql`COALESCE('IDEA_' || i.status, 'BUG_' || i.bug_status)`;
 const LIVE_MATCH = sql`EXISTS (SELECT 1 FROM fh_idea_match m JOIN fh_idea c ON c.id = m.candidate_id AND c.merged_into_id IS NULL WHERE m.idea_id = i.id)`;
-const COMPANY_MISSING = sql`(COALESCE(r.has_intake_source, false) AND COALESCE(r.company_count, 0) = 0)`;
+// FH-405: an external intake source (internal calls never count, OD-22) and no company in the roll-up.
+const COMPANY_MISSING = sql`(COALESCE(r.external_intake, false) AND COALESCE(r.company_count, 0) = 0)`;
 const PRIO = sql`(CASE WHEN i.strategic_value IS NULL OR i.revenue_impact IS NULL OR i.customer_experience IS NULL
   OR i.risk_score IS NULL OR i.effort_score IS NULL THEN NULL ELSE LEAST(10, GREATEST(1, round(0.2 * i.strategic_value
   + 0.3 * i.revenue_impact + 0.25 * i.customer_experience - 0.1 * i.risk_score - 0.15 * i.effort_score, 2) + 2.75)) END)`;
@@ -99,6 +100,28 @@ function columnFilter(column: string, values: (string | null)[]): Frag | null {
     }
     default: return null;
   }
+}
+
+/**
+ * Triage toolbar (FH-403, FH-404), one statement: a chip per source present in the current set ignoring the Source
+ * filter itself, and the number of Unreviewed call- and support-sourced ideas in the fully filtered set.
+ */
+export async function triageCounts(db: Db, spec: ViewSpec) {
+  const sourceFilter = spec.filters.source?.length ? columnFilter('source', spec.filters.source) : null;
+  const { rows } = await sql<{ value: string; count: number }>`
+    WITH base AS (
+      SELECT i.reviewed_at, COALESCE(r.sources, '{}') AS sources, ${sourceFilter ?? TRUE} AS in_set
+      FROM ${FROM} WHERE ${fullWhere(spec, 'source')})
+    SELECT s AS value, count(*)::int AS count
+      FROM base, unnest(CASE WHEN base.sources = '{}' THEN ARRAY['MANUAL'] ELSE base.sources END) s GROUP BY 1
+    UNION ALL SELECT '_unreviewed_calls', count(*)::int FROM base WHERE in_set AND reviewed_at IS NULL AND 'CALL' = ANY(sources)
+    UNION ALL SELECT '_unreviewed_support', count(*)::int FROM base WHERE in_set AND reviewed_at IS NULL AND 'SUPPORT_BUTTON' = ANY(sources)`.execute(db);
+  const get = (k: string) => rows.find((r) => r.value === k)?.count ?? 0;
+  return {
+    sources: rows.filter((r) => !r.value.startsWith('_')).sort((a, b) => b.count - a.count || a.value.localeCompare(b.value)),
+    unreviewedCalls: get('_unreviewed_calls'),
+    unreviewedSupport: get('_unreviewed_support'),
+  };
 }
 
 /** Base + every column filter (AND across columns). */
@@ -217,7 +240,7 @@ export interface Facet { value: string | null; label: string; count: number }
 
 /** Counts for one column over the current view, rail and search, before column filters. One statement. */
 export async function facets(db: Db, spec: ViewSpec, column: string, q: string | null): Promise<Facet[]> {
-  const base = sql`SELECT i.*, r.sources AS r_sources, r.has_intake_source, r.company_count
+  const base = sql`SELECT i.*, r.sources AS r_sources, r.external_intake, r.company_count
                    FROM ${FROM} WHERE ${baseWhere(spec)}`;
   const search = q?.trim() ? `%${likeEscape(q.trim())}%` : null;
   let query: Frag;
@@ -269,7 +292,7 @@ export async function facets(db: Db, spec: ViewSpec, column: string, q: string |
                   GROUP BY 1`;
       break;
     case 'triage': {
-      const missing = sql`(COALESCE(i.has_intake_source, false) AND COALESCE(i.company_count, 0) = 0)`;
+      const missing = sql`(COALESCE(i.external_intake, false) AND COALESCE(i.company_count, 0) = 0)`;
       const dup = sql`EXISTS (SELECT 1 FROM fh_idea_match m JOIN fh_idea c ON c.id = m.candidate_id AND c.merged_into_id IS NULL WHERE m.idea_id = i.id)`;
       query = sql`, f AS (SELECT (i.reviewed_at IS NULL) AS unrev, ${missing} AS missing, ${dup} AS dup FROM base i)
                   SELECT 'UNREVIEWED' AS value, NULL AS label, count(*) FILTER (WHERE unrev)::int AS count FROM f

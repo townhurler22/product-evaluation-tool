@@ -1,19 +1,12 @@
 // Sanitiser (SEC-13), limited Markdown parser (SEC-14), link rule (SEC-15) and CSV writer (SEC-18).
 // Pure functions shared by client and server.
 
-// C0/C1 controls except tab and newline; bidi overrides/isolates; zero-width characters.
-const STRIP = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F‪-‮⁦-⁩​-‍﻿]/g;
+import { sanitizeText } from '@/lib/text';
 
-/** SEC-13. Returns null for empty text. Over-length is the caller's error, never truncated here. */
+/** SEC-13: the one sanitiser in `src/lib/text.ts`. Returns null for empty text. Over-length is the caller's error. */
 export function sanitise(input: string | null | undefined): string | null {
   if (input === null || input === undefined) return null;
-  const out = input
-    .replace(/\r\n?/g, '\n')
-    .replace(STRIP, '')
-    .normalize('NFC')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-  return out === '' ? null : out;
+  return sanitizeText(input);
 }
 
 /** SEC-15: http(s) only, no credentials, ≤ 2,000 characters. Returns the normalised URL or null. */

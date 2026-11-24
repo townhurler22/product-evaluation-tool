@@ -3,6 +3,8 @@ import { sql } from 'kysely';
 import { getDb } from '@/server/db';
 import { registerJob } from '@/modules/core/service';
 import type { Db } from './store';
+import { refreshReporting } from './reporting';
+import './register';
 
 /**
  * FH-406: source terms are the stemmed words of the title; candidates are live ideas whose stored, indexed
@@ -43,10 +45,10 @@ export async function reconcile(db: Db = getDb(), repair = true): Promise<Reconc
     SELECT f.idea_id::text AS id FROM fresh f LEFT JOIN fh_idea_rollup r ON r.idea_id = f.idea_id
     WHERE r.idea_id IS NULL
        OR (r.user_count, r.company_count, r.arr, r.insight_count, r.vote_total, r.distinct_voters, r.sources,
-           r.has_intake_source, r.on_forum)
+           r.has_intake_source, r.on_forum, r.external_intake)
           IS DISTINCT FROM
           (f.user_count, f.company_count, f.arr, f.insight_count, f.vote_total, f.distinct_voters, f.sources,
-           f.has_intake_source, f.on_forum)`.execute(db);
+           f.has_intake_source, f.on_forum, f.external_intake)`.execute(db);
   const demand = await sql<{ id: string; open_count: number; all_count: number }>`
     WITH fresh AS (
       SELECT f.id, (count(i.id) FILTER (WHERE fh_is_open(i.status, i.bug_status)))::int AS open_count, count(i.id)::int AS all_count
@@ -93,3 +95,12 @@ registerJob('fh.match.compute', async (payload) => {
   if (typeof payload.ideaId === 'string') await computeMatches(getDb(), payload.ideaId);
 });
 registerJob('fh.reconcile', async () => { await reconcile(); });
+// FH-505: roll-ups for more than 500 affected ideas (a company's ARR or domain, a person's company).
+registerJob('fh.rollup.refresh', async (payload) => {
+  const ids = Array.isArray(payload.ideaIds) ? payload.ideaIds.filter((x): x is string => typeof x === 'string') : [];
+  for (let i = 0; i < ids.length; i += 1000) {
+    await sql`SELECT fh_rollup_refresh(${ids.slice(i, i + 1000)}::uuid[])`.execute(getDb());
+  }
+});
+// FH-854: reporting materialised view, every 5 minutes (pg_cron enqueues it; db/supabase/setup.sql).
+registerJob('fh.reporting.refresh', async () => { await refreshReporting(); });

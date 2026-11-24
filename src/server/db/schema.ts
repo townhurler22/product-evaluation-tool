@@ -319,6 +319,7 @@ export interface FhIdeaRollup {
   sources: Generated<string[]>;
   has_intake_source: Generated<boolean>;
   on_forum: Generated<boolean>;
+  external_intake: Generated<boolean>;
   updated_at: Generated<Date>;
 }
 

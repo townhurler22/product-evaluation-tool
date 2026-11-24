@@ -84,6 +84,21 @@ export const STATEMENT_BUDGETS = {
   'DELETE /api/fh/saved-views/:id': 3,
   'GET /api/fh/companies': 2,
   'GET /api/fh/people': 2,
+  // Feedback Hub P2: triage, intake, people and reporting.
+  'GET /api/fh/ideas/triage-counts': 2,        // one statement for the source chips and both Accept-all counts
+  'GET /api/fh/ideas/:id/images': 3,           // files of the idea's insights, then the live core_file rows to sign
+  'POST /api/fh/companies': 8,                 // domain check, insert, adopt, affected ideas, roll-ups, audit, detail
+  'GET /api/fh/companies/:id': 2,
+  'PATCH /api/fh/companies/:id': 10,           // lock, domain check, release, update, adopt, affected, roll-ups, audit, detail
+  'POST /api/fh/companies/delete': 6,          // affected, detach + counts, delete, roll-ups, audit
+  'POST /api/fh/people': 4,
+  'GET /api/fh/people/:id': 2,
+  'PATCH /api/fh/people/:id': 7,
+  'POST /api/fh/people/erase': 14,             // exists, audit, FH erasePerson ≤ 8, files ≤ 2, delete, audit (any batch size)
+  'GET /api/fh/reporting': 2,                  // one read of fh_reporting_mv (FH-854)
+  // Intake (§10): gateway ≤ 5 (key, rate window, receipt check, log, last used) + the accepted transaction ≤ 14 (ING-22).
+  'POST /api/ingest/fh/v1/call-requests': 19,
+  'POST /api/ingest/fh/v1/support-submissions': 19,
   // Journey Boards (§11.2). Board access is 1 statement (D-23); content is 4 (PERF-24).
   'GET /api/jb/boards': 2,                         // metadata only (PERF-24, PT-09)
   'POST /api/jb/boards': 11,                       // journey checks 2, board + fields + nodes + edges, content 4
