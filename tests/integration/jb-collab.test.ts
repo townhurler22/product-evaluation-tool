@@ -104,7 +104,7 @@ describe('collaborators (JB-1302)', () => {
     expect(list.body.collaborators.map((c: { email: string; role: string }) => [c.email, c.role])).toEqual([['bob@team.test', 'EDITOR']]);
     const bobId = list.body.collaborators[0].userId;
     expect((await call(collabDelete, { method: 'DELETE', cookie: bob, params: { id }, path: `/x?userId=${bobId}` })).status).toBe(204);
-    const audit = await ctx.pg.query(`SELECT action FROM core_audit_log WHERE action LIKE 'jb.collaborator%' ORDER BY created_at`);
+    const audit = await ctx.pg.query<{ action: string }>(`SELECT action FROM core_audit_log WHERE action LIKE 'jb.collaborator%' ORDER BY created_at`);
     expect(audit.rows.map((r: { action: string }) => r.action)).toEqual(['jb.collaborator.set', 'jb.collaborator.set', 'jb.collaborator.remove']);
   });
 });
@@ -149,7 +149,7 @@ describe('board share links (§8.14, D-30)', () => {
     return { status: r.status, token: r.status === 201 ? new URL(r.body.url).pathname.split('/').pop()! : '' };
   }
   const shareCall = (h: typeof shareBoard, token: string, params: Record<string, string> = {}, query = '') =>
-    call(h, { path: `/api/share/${token}/jb/x${query}`, params: { token, ...params } });
+    call(h as Parameters<typeof call>[0], { path: `/api/share/${token}/jb/x${query}`, params: { token, ...params } });
 
   it('serves the board and its journeys read-only, with images of both, and nothing internal', async () => {
     const id = (await createBoard(alice, { name: 'Shared', template: 'sample' })).meta.id;
@@ -200,7 +200,7 @@ describe('export and import (§8.19)', () => {
     expect(imported.status).toBe(201);
     const newId = imported.body.boards[0].id;
     expect(newId).not.toBe(id);
-    const row = await ctx.pg.query(`SELECT data FROM jb_node WHERE board_id = $1 AND id = 'dc-signup'`, [newId]);
+    const row = await ctx.pg.query<{ data: Record<string, unknown> }>(`SELECT data FROM jb_node WHERE board_id = $1 AND id = 'dc-signup'`, [newId]);
     expect(row.rows[0].data.futureKey).toEqual({ keep: [1, 2] });
     expect((await ctx.pg.query(`SELECT count(*)::int AS n FROM jb_board WHERE journey_of_board_id = $1`, [newId])).rows[0]).toEqual({ n: 1 });
     const priv = (await createBoard(alice, { name: 'Private' })).meta.id;
@@ -226,7 +226,7 @@ describe('change-log retention (JB-1606, OD-25, D-22)', () => {
     await sendOps(alice, id, [card('c')]);
     expect(await compactBoards()).toBe(1);
     expect((await ctx.pg.query(`SELECT seq::int FROM jb_change WHERE board_id = $1`, [id])).rows).toEqual([{ seq: 3 }]);
-    expect((await ctx.pg.query(`SELECT id FROM jb_node WHERE board_id = $1 ORDER BY id`, [id])).rows.map((r: { id: string }) => r.id)).toEqual(['a', 'c']);
+    expect((await ctx.pg.query<{ id: string }>(`SELECT id FROM jb_node WHERE board_id = $1 ORDER BY id`, [id])).rows.map((r: { id: string }) => r.id)).toEqual(['a', 'c']);
     expect((await ctx.pg.query(`SELECT count(*)::int AS n FROM jb_snapshot`)).rows[0]).toEqual({ n: 1 });
     expect((await call(changesRoute, { cookie: alice, params: { id }, path: `/x?since=1` })).body.resync).toBe(true);
     expect((await call(changesRoute, { cookie: alice, params: { id }, path: `/x?since=2` })).body.batches).toHaveLength(1);
