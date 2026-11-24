@@ -100,7 +100,14 @@ async function main() {
     ch.on('broadcast', { event: 'idea.upserted' }, (m: { payload: { row: { id: string; title: string } } }) => {
       if (pending && m.payload.row.id === pending.id && m.payload.row.title.includes('remote')) { lat.push(performance.now() - pending.t); pending.resolve(); }
     });
-    await new Promise<void>((res, rej) => ch.subscribe((s: string) => (s === 'SUBSCRIBED' ? res() : s === 'CHANNEL_ERROR' ? rej(new Error('channel error')) : undefined)));
+    const joined = await new Promise<boolean>((res) => {
+      ch.subscribe((s: string) => (s === 'SUBSCRIBED' ? res(true) : s === 'CHANNEL_ERROR' || s === 'TIMED_OUT' ? res(false) : undefined));
+      setTimeout(() => res(false), 10_000);
+    });
+    if (!joined) {
+      client.disconnect();
+      record('PT-15 remote change', null, 'Supabase refused the realtime token (needs the legacy JWT secret); clients poll every 30 s');
+    } else {
     for (let i = 0; i < Math.min(RUNS, 10); i++) {
       await new Promise<void>((resolve) => {
         pending = { id: created[0], t: performance.now(), resolve };
@@ -110,6 +117,7 @@ async function main() {
     }
     client.disconnect();
     record('PT-15 remote change', lat.length > 0 && pct(lat, 95) <= 1000, `${lat.length} events, p95 ${lat.length ? pct(lat, 95).toFixed(0) : '–'} ms (≤ 1000)`);
+    }
   }
 
   // PT-20
