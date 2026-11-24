@@ -271,7 +271,7 @@ export async function facets(db: Db, spec: ViewSpec, column: string, q: string |
     case 'triage': {
       const missing = sql`(COALESCE(i.has_intake_source, false) AND COALESCE(i.company_count, 0) = 0)`;
       const dup = sql`EXISTS (SELECT 1 FROM fh_idea_match m JOIN fh_idea c ON c.id = m.candidate_id AND c.merged_into_id IS NULL WHERE m.idea_id = i.id)`;
-      query = sql`WITH f AS (SELECT (i.reviewed_at IS NULL) AS unrev, ${missing} AS missing, ${dup} AS dup FROM base i)
+      query = sql`, f AS (SELECT (i.reviewed_at IS NULL) AS unrev, ${missing} AS missing, ${dup} AS dup FROM base i)
                   SELECT 'UNREVIEWED' AS value, NULL AS label, count(*) FILTER (WHERE unrev)::int AS count FROM f
                   UNION ALL SELECT 'COMPANY_MISSING', NULL, count(*) FILTER (WHERE missing)::int FROM f
                   UNION ALL SELECT 'DUPLICATE', NULL, count(*) FILTER (WHERE dup)::int FROM f
@@ -370,3 +370,6 @@ export async function boardColumns(db: Db, spec: ViewSpec, group: BoardGroup, co
   }
   return { columns: [...cols.values()] };
 }
+
+/** ORDER BY for an export: the user's current sort (FH-157). */
+export const exportOrder = (spec: ViewSpec) => orderAndSeek(spec, null).order;

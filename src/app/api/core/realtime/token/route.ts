@@ -2,6 +2,7 @@
 import { z } from 'zod';
 import { authoriseChannels, mintRealtimeToken } from '@/modules/core/realtime';
 import { route } from '@/server/http/route';
+import '@/modules/fh/live'; // registers the fh.idea.<id> channel rule
 
 const Body = z.strictObject({ channels: z.array(z.string().max(80)).min(1).max(20) });
 

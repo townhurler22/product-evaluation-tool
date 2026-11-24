@@ -146,3 +146,19 @@ export async function clientLog(clientId: string, before: string | null) {
   if (before) q = q.where('created_at', '<', new Date(before));
   return q.execute();
 }
+
+// ── Feedback Hub grants (ARC-13, SEC-02): feedback admin and the separate post-delete grant ──
+export async function setFhGrant(actor: Principal, userId: string, g: { admin: boolean; canDeletePosts: boolean }) {
+  const grant = await getDb().transaction().execute(async (tx) => {
+    const user = await tx.selectFrom('core_user').select('id').where('id', '=', userId).executeTakeFirst();
+    if (!user) throw new ApiError('not_found', 'Not found.');
+    const row = await tx.insertInto('fh_grant')
+      .values({ user_id: userId, role: g.admin ? 'ADMIN' : null, can_delete_posts: g.canDeletePosts, granted_by: actor.userId })
+      .onConflict((oc) => oc.column('user_id').doUpdateSet({ role: g.admin ? 'ADMIN' : null, can_delete_posts: g.canDeletePosts, granted_by: actor.userId }))
+      .returning(['user_id', 'role', 'can_delete_posts']).executeTakeFirstOrThrow();
+    await audit({ actorKind: 'user', actorId: actor.userId, action: 'core.user.fh_grant', targetKind: 'user', targetId: userId, details: g }, tx);
+    return row;
+  });
+  forgetPrincipal(userId);
+  return { userId: grant.user_id, admin: grant.role === 'ADMIN', canDeletePosts: grant.can_delete_posts };
+}
