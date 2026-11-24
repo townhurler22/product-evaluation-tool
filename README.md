@@ -6,7 +6,7 @@ Product decisions and deviations from the spec are recorded in `DECISIONS.md`.
 
 ## Status
 - [x] P0 built: Core schema and migrations, magic-link and demo sign-in, request lifecycle with Server-Timing and statement budgets, job queue, intake gateway (§10), share pipeline (§12.2), files, realtime authorisation, admin console, fixture and demo seed, CI. 123 tests.
-- [ ] P0 sign-off: deploy to Vercel (one deployment, one database), run `pnpm supabase:setup` and `pnpm perf:p0 <url>` (PT-06, PT-07, PT-08, ARC-32)
+- [x] P0 signed off 24 Nov 2026 on https://product-evaluation-tool-two.vercel.app (dub1): PT-08 cold start 167 ms, ARC-32 DB round trip p50 3.2 ms, PT-06 preamble p95 6.3 ms with 1 statement, PT-07 20 concurrent p95 893 ms with no 5xx. Supabase setup applied (bucket, realtime policies, pg_cron).
 - [ ] P1 Feedback Hub core · P2 Triage and intake · P3 Public forum · P4 Journey Boards · P5 Journey mapping and demand
 
 ## Develop

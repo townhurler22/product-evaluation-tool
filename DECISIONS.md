@@ -53,3 +53,8 @@ Each is flagged to the product owner, per §0 rule 6.
 | S3 bucket | Supabase Storage, private bucket, signed URLs | Same provider and region |
 | Testcontainers Postgres for integration tests | **PGlite** (real PostgreSQL compiled to WASM, run in-process) locally and in CI. Timing budgets measured against the Supabase staging project | No Docker on the dev machine. PGlite runs every migration from empty, as NFR-16 requires |
 | OIDC single sign-on | Magic-link email through Resend | See OD-01 |
+
+## Known gaps at P0 sign-off (24 Nov 2026)
+
+- **Realtime tokens:** the Supabase project signs with asymmetric (ES256) keys. The app mints HS256 tokens, so it needs the project's *legacy* JWT secret in `SUPABASE_JWT_SECRET`. Until that is set, clients fall back to polling. Server-side publishing works.
+- **Owner sign-in in production** needs `RESEND_API_KEY` (magic-link email). Without it only the demo button works.
