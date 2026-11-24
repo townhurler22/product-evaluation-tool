@@ -179,7 +179,7 @@ export default function Canvas({ pins, cursors, onPin, onPointer, onViewport, in
         onPaneClick={() => ui.set({ panelNodeId: null, panelEdgeId: null })}
         nodesDraggable={!readOnly} nodesConnectable={!readOnly} elementsSelectable
         selectionOnDrag={!readOnly} panOnDrag={readOnly ? true : [1, 2]} selectionKeyCode="Shift" multiSelectionKeyCode={['Shift', 'Meta', 'Control']}
-        deleteKeyCode={null}
+        deleteKeyCode={null} zoomOnDoubleClick={false}
         defaultViewport={defaultViewport} fitView={!initialViewport}
         onMoveEnd={(_, v) => { if (!onViewport) return; if (moveEnd.current) clearTimeout(moveEnd.current); moveEnd.current = setTimeout(() => onViewport(v), 1000); }}
         proOptions={{ hideAttribution: true }}

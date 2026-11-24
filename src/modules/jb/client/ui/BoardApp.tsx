@@ -176,8 +176,6 @@ function Board({ boardId, loaded, deepNodeId }: { boardId: string; loaded: Loade
     if (deepNodeId && store.view.nodes.has(deepNodeId)) ui.set({ highlighted: deepNodeId, panelNodeId: deepNodeId });
   }, [deepNodeId, store, ui]);
 
-  useDimmingWithin(ctx);
-
   const centre = useCallback(() => {
     const el = document.querySelector('.jb-canvas');
     const r = el?.getBoundingClientRect();
@@ -202,6 +200,7 @@ function Board({ boardId, loaded, deepNodeId }: { boardId: string; loaded: Loade
   const tabs = metas.filter((m) => !m.journeyOf);
   return (
     <BoardProvider value={ctx}>
+      <Dimmer />
       <div className={`jb-app ${present ? 'jb-presenting' : ''}`}>
         {!present && (
           <header className="jb-header">
@@ -254,7 +253,8 @@ function Board({ boardId, loaded, deepNodeId }: { boardId: string; loaded: Loade
   );
 }
 
-function useDimmingWithin(ctx: BoardCtx) { void ctx; useDimming(); }
+/** Keeps dimming in step with filters and isolate mode; must render inside the provider. */
+function Dimmer() { useDimming(); return null; }
 
 function PanelHost({ threads, setThreads, canComment, canManage }: { threads: Thread[]; setThreads: (f: (t: Thread[]) => Thread[]) => void; canComment: boolean; canManage: boolean }) {
   const nodeId = useUi((s) => s.panelNodeId);
