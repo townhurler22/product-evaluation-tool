@@ -1,5 +1,5 @@
-import Placeholder from '../_components/placeholder';
+import Reporting from '../_components/reporting';
 
 export default function ReportingPage() {
-  return <Placeholder title="Reporting" note="Reporting tiles and theme trends arrive in phase P2." />;
+  return <Reporting />;
 }

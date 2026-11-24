@@ -95,7 +95,7 @@ export const STATEMENT_BUDGETS = {
   'GET /api/fh/people/:id': 2,
   'PATCH /api/fh/people/:id': 7,
   'POST /api/fh/people/erase': 14,             // exists, audit, FH erasePerson ≤ 8, files ≤ 2, delete, audit (any batch size)
-  'GET /api/fh/reporting': 2,                  // one read of fh_reporting_mv (FH-854)
+  'GET /api/fh/reporting': 3,                  // one read of fh_reporting_mv (FH-854); + a debounced refresh job when stale
   // Intake (§10): gateway ≤ 5 (key, rate window, receipt check, log, last used) + the accepted transaction ≤ 14 (ING-22).
   'POST /api/ingest/fh/v1/call-requests': 19,
   'POST /api/ingest/fh/v1/support-submissions': 19,
