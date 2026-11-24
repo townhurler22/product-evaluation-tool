@@ -10,6 +10,9 @@ import { GET as auditRoute } from '@/app/api/core/admin/audit/route';
 import { GET as clientsRoute } from '@/app/api/core/admin/intake/clients/route';
 import { GET as meRoute } from '@/app/api/me/route';
 import { clearPrincipalCache } from '@/modules/core/auth/principal';
+import { GET as boardsRoute } from '@/app/api/jb/boards/route';
+import { GET as contentRoute } from '@/app/api/jb/boards/[id]/content/route';
+import { POST as opsRoute } from '@/app/api/jb/boards/[id]/ops/route';
 
 async function statementsOn(scale: number) {
   const ctx = await freshDb();
@@ -45,4 +48,23 @@ describe('fixture (§13.4)', () => {
     const large = await statementsOn(0.1);
     expect(large.counts).toEqual(small.counts);
   }, 120_000);
+
+  it('PT-16: Journey Boards endpoints keep the same statement count on the base and a 10× fixture', async () => {
+    async function jb(scale: number) {
+      const { counts } = await statementsOn(scale); void counts;
+      const link = await requestMagicLink({ email: 'owner@example.com', ipHash: null, origin: 'http://x' });
+      const cookie = cookieFrom((await call(callback, { path: `/api/auth/callback?token=${encodeURIComponent(new URL(link!).searchParams.get('token')!)}` })).setCookie);
+      const large = '0190c3a3-0000-7000-8000-000000000001';
+      const out: Record<string, number> = {};
+      clearPrincipalCache(); out.boards = (await call(boardsRoute, { cookie })).statements;
+      clearPrincipalCache(); out.content = (await call(contentRoute, { cookie, params: { id: large } })).statements;
+      clearPrincipalCache();
+      const ops = Array.from({ length: 50 }, (_, k) => ({ type: 'node', op: 'patch', id: `n${(k % 20) + 1}`, baseVersion: 1, set: { x: k } })); // 50 ops over 20 cards (the smallest fixture)
+      const r = await call(opsRoute, { method: 'POST', cookie, params: { id: large }, body: { batchId: `fixture-${Math.round(scale * 1000)}`, clientId: 'fixture', protocol: 1, ops } });
+      expect(r.status).toBe(200);
+      out.ops = r.statements;
+      return out;
+    }
+    expect(await jb(0.1)).toEqual(await jb(0.01)); // scaled down as above; the largest board still grows 10×
+  }, 240_000);
 });

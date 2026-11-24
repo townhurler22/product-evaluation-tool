@@ -1,9 +1,15 @@
-// Core's public service interface for the other modules (ARC-01, ARC-03). Feedback Hub and Journey Boards
-// import Core only through this file; the lint rule in eslint.config.mjs refuses any other Core path.
-export type { Principal } from './auth/principal';
+// Core's public service interface (ARC-01, ARC-03). Feedback Hub and Journey Boards import Core only through
+// this file; the lint rule in eslint.config.mjs refuses any other `@/modules/core/*` import from fh or jb.
+export type { Principal, Role } from './auth/principal';
 export { audit, type AuditEntry } from './audit';
+export { newId, sha256 } from './util';
 export { enqueue, registerJob, drainJobs } from './jobs';
 export { publish, publishMany, registerChannelRule } from './realtime';
 export { getSettings, type Settings } from './settings';
-export { deleteFiles, signFileUrls, registerFileOwnerResolver } from './files/service';
-export { newId } from './util';
+export {
+  registerShareResolver, type ShareLinkRow, type ResolvedTarget, type ShareContext,
+} from './share/pipeline';
+export { registerShareManagePolicy } from './share/links';
+export {
+  prepareUpload, insertFileRows, discardUploads, deleteFiles, signFileUrls, registerFileOwnerResolver, type PreparedFile,
+} from './files/service';

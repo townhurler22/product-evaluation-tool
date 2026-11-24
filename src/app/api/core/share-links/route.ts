@@ -1,3 +1,4 @@
+import '@/server/registrations';
 import { z } from 'zod';
 import { createShareLink, listShareLinks } from '@/modules/core/share/links';
 import { ApiError } from '@/server/http/errors';

@@ -1,3 +1,4 @@
 // Imports every module's job registrations. Phases add their job modules here.
 import '@/modules/core/jobs-core';
 import '@/modules/fh/jobs';
+import '@/modules/jb/register';
