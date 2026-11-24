@@ -331,7 +331,7 @@ export function stampBaseVersions(ops: Op[], server: BoardDoc): Op[] {
     if (o.type === 'board') return o;
     const k = objKey(o.type, o.id);
     if (o.op === 'create') { created.add(k); return o; }
-    if (created.has(k)) { const { baseVersion: _b, ...rest } = o as PatchOp; void _b; return rest as Op; } // eslint-disable-line @typescript-eslint/no-unused-vars
+    if (created.has(k)) { const { baseVersion: _b, ...rest } = o as PatchOp; void _b; return rest as Op; }
     const rec = getRec(server, o.type, o.id);
     if (o.op === 'restore') return { ...o, baseVersion: (o as RestoreOp).baseVersion ?? 0 };
     return { ...o, baseVersion: rec?.version ?? (o as PatchOp).baseVersion ?? 0 };

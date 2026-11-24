@@ -2,7 +2,7 @@
 // NOTE for the P1 merge: Feedback Hub needs the same functions; keep one copy (this file or P1's).
 
 // C0/C1 controls except tab and newline; bidi overrides and isolates; zero-width characters.
-const STRIP = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F‪-‮⁦-⁩​-‍﻿]/g; // eslint-disable-line no-control-regex
+const STRIP = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F‪-‮⁦-⁩​-‍﻿]/g;
 
 /** Cleans text one person writes and another reads. Returns null for empty text. Never truncates. */
 export function sanitizeText(input: string): string | null {

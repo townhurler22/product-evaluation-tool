@@ -10,6 +10,7 @@ export interface BoardCtx {
   ui: UiStore;
   boardId: string;
   mode: 'collab' | 'share';
+  me: { userId: string; name: string } | null;
   /** Image URLs (signed) for ids in view; share mode resolves through the share route. */
   imageUrl: (imageId: string) => string | undefined;
   requestImages: (ids: string[]) => void;

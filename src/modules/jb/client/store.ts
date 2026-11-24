@@ -33,13 +33,17 @@ export class BoardStore {
   private remoteTick = 0;
   private remoteKeys = new Map<string, number>(); // JB-1503: keys collaborators changed, for JB-1703
   private listeners = new Set<Listener>();
-  private openStep: Step | null = null;
   /** Called whenever local ops are added (the sync engine debounces a flush, JB-1604). */
   onLocalEdit: (() => void) | null = null;
   /** Called when a remote batch deletes the card whose panel is open (JB-1504). */
   onRemoteDelete: ((nodeId: string, userId: string | null) => void) | null = null;
 
   constructor(readonly clientId: string, readOnly = false) { this.readOnly = readOnly; }
+
+  setHandlers(h: { onLocalEdit?: (() => void) | null; onRemoteDelete?: ((nodeId: string, userId: string | null) => void) | null }) {
+    if (h.onLocalEdit !== undefined) this.onLocalEdit = h.onLocalEdit;
+    if (h.onRemoteDelete !== undefined) this.onRemoteDelete = h.onRemoteDelete;
+  }
 
   // ── subscription ──
   subscribe = (l: Listener) => { this.listeners.add(l); return () => { this.listeners.delete(l); }; };
@@ -84,7 +88,7 @@ export class BoardStore {
       if (inv) inverses.unshift(inv);
     }
     if (!applied.length) return false; // JB-1702: an action that changes nothing records no step
-    this.view = { ...this.view };
+    this.view = { ...this.view, fields: new Map(this.view.fields) };
     for (const op of applied) this.pending = foldInto(this.pending, op);
     if (opts.history !== false) this.record(applied, inverses, opts.key ?? null);
     this.notify();
@@ -102,7 +106,6 @@ export class BoardStore {
       if (this.undoStack.length > HISTORY_MAX) this.undoStack.shift();
     }
     this.redoStack = [];
-    this.openStep = null;
   }
 
   get canUndo() { return !this.readOnly && this.undoStack.length > 0; }
@@ -135,7 +138,7 @@ export class BoardStore {
     if (!step) return 'nothing';
     const { done, inverses } = this.replay(step, step.inverses);
     if (!done.length) { this.notify(); return 'skipped'; } // "Nothing to undo — others have changed these items"
-    this.view = { ...this.view };
+    this.view = { ...this.view, fields: new Map(this.view.fields) };
     for (const op of done) this.pending = foldInto(this.pending, op);
     this.redoStack.push({ key: null, at: Date.now(), ops: done, inverses, startTick: this.remoteTick });
     this.notify(); this.onLocalEdit?.();
@@ -148,7 +151,7 @@ export class BoardStore {
     if (!step) return 'nothing';
     const { done, inverses } = this.replay(step, step.inverses);
     if (!done.length) { this.notify(); return 'skipped'; }
-    this.view = { ...this.view };
+    this.view = { ...this.view, fields: new Map(this.view.fields) };
     for (const op of done) this.pending = foldInto(this.pending, op);
     this.undoStack.push({ key: null, at: Date.now(), ops: done, inverses, startTick: this.remoteTick });
     this.notify(); this.onLocalEdit?.();
@@ -208,7 +211,7 @@ export class BoardStore {
       if (base) m.set(id, structuredClone(base)); else m.delete(id);
       for (const o of outbox) if (o.type === type && o.id === id) applyOp(v, o);
     }
-    this.view = { ...v };
+    this.view = { ...v, fields: new Map(v.fields) }; // fields are few; a new map lets field selectors see changes
     this.notify();
   }
 

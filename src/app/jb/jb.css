@@ -1,0 +1,94 @@
+/* Journey Boards. Colours come from the app tokens (globals.css) so light and dark both work (NFR-01). */
+.jb-app { display: flex; flex-direction: column; height: 100dvh; }
+.jb-header { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.jb-header button, .jb-toolbar button, .jb-side button, .jb-panel button, .jb-message button { min-height: 28px; padding: 2px 10px; border: 1px solid var(--border); border-radius: 6px; background: transparent; color: inherit; }
+.jb-header button[aria-pressed="true"], .jb-toolbar button[aria-pressed="true"] { background: var(--accent); color: var(--bg); }
+.jb-toolbar button:disabled, .jb-side button:disabled { opacity: 0.5; }
+.jb-back { text-decoration: underline; }
+.jb-tabs { display: flex; gap: 4px; overflow-x: auto; max-width: 50vw; }
+.jb-tab { padding: 4px 10px; border-radius: 6px; white-space: nowrap; border: 1px solid transparent; background: transparent; color: inherit; }
+.jb-tab[aria-current="page"] { border-color: var(--accent); font-weight: 600; }
+.jb-title { font-size: 1.1rem; font-weight: 700; margin: 0; }
+.jb-title input { font: inherit; background: transparent; color: inherit; border: 1px solid transparent; border-radius: 4px; padding: 2px 4px; }
+.jb-title input:hover, .jb-title input:focus { border-color: var(--border); }
+.jb-presence { display: flex; gap: 4px; margin-left: auto; }
+.jb-avatar { width: 26px; height: 26px; border-radius: 50%; color: #fff; display: grid; place-items: center; font-size: 0.8rem; font-weight: 700; }
+.jb-live { font-size: 0.8rem; color: var(--muted); }
+.jb-toolbar { display: flex; gap: 16px; padding: 6px 12px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.jb-group { display: flex; gap: 4px; flex-wrap: wrap; }
+.jb-banners { padding: 4px 12px; }
+.jb-banner { margin: 4px 0; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; display: flex; gap: 8px; align-items: center; }
+.jb-body { position: relative; flex: 1; display: flex; min-height: 0; }
+.jb-canvas { flex: 1; min-width: 0; height: 100%; }
+.jb-sidebar { width: 320px; border-left: 1px solid var(--border); overflow-y: auto; }
+.jb-side { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.jb-side h2, .jb-panel h2 { font-size: 1rem; font-weight: 700; margin: 0; }
+.jb-side h3, .jb-panel h3 { font-size: 0.9rem; font-weight: 600; margin: 8px 0 4px; }
+.jb-panel { width: 360px; border-left: 1px solid var(--border); padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; background: var(--bg); }
+.jb-panel header { display: flex; justify-content: space-between; align-items: center; }
+.jb-field { display: flex; flex-direction: column; gap: 2px; font-size: 0.9rem; }
+.jb-field input, .jb-field select, .jb-field textarea, .jb-inline-form input, .jb-inline-form textarea, .jb-inline-form select, .jb-fields input, .jb-options input, .jb-options select, .jb-row input {
+  background: transparent; color: inherit; border: 1px solid var(--border); border-radius: 4px; padding: 4px 6px; font: inherit; }
+.jb-row { display: flex; gap: 8px; font-size: 0.9rem; }
+.jb-row-label { color: var(--muted); font-size: 0.8rem; min-width: 80px; }
+.jb-check { display: flex; gap: 6px; align-items: center; font-size: 0.9rem; }
+.jb-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.jb-inline-form { display: flex; flex-wrap: wrap; gap: 6px; }
+.jb-danger { color: #b91c1c !important; border-color: #b91c1c !important; }
+.jb-error { color: #b91c1c; font-size: 0.85rem; }
+.jb-quiet { color: var(--muted); font-size: 0.85rem; }
+.jb-link { text-decoration: underline; border: 0 !important; padding: 0 !important; }
+.jb-pre { white-space: pre-wrap; margin: 2px 0 6px; }
+.jb-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.jb-message { max-width: 40rem; margin: 4rem auto; padding: 0 16px; display: flex; flex-direction: column; gap: 12px; }
+.jb-health, .jb-fields, .jb-options, .jb-threads, .jb-links { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.jb-health button { width: 100%; display: flex; justify-content: space-between; }
+.jb-fields > li { border: 1px solid var(--border); border-radius: 6px; padding: 6px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.jb-thread { border: 1px solid var(--border); border-radius: 6px; padding: 6px; }
+.jb-thread-resolved { opacity: 0.7; }
+.jb-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.jb-compare img { width: 100%; border-radius: 4px; border: 1px solid var(--border); }
+.jb-img-empty { height: 80px; display: grid; place-items: center; border: 1px dashed var(--border); border-radius: 4px; font-size: 0.8rem; color: var(--muted); }
+.jb-upload { font-size: 0.8rem; text-decoration: underline; cursor: pointer; }
+.jb-upload input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.jb-outline { padding: 12px; }
+.jb-outline ul { list-style: none; padding-left: 14px; margin: 0; }
+.jb-outline-item { border: 0; background: transparent; color: inherit; text-align: left; padding: 3px 4px; min-height: 24px; border-radius: 4px; }
+.jb-outline-item:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.jb-outline-section { font-weight: 600; }
+.jb-kind { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; }
+.jb-presenting .react-flow__panel { display: none; }
+.jb-exit-present { position: absolute; top: 8px; right: 8px; z-index: 10; padding: 4px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: inherit; }
+
+/* Canvas nodes */
+.react-flow { --xy-background-color: var(--bg); --xy-node-color: var(--fg); --xy-edge-label-background-color: var(--bg); --xy-edge-label-color: var(--fg); --xy-controls-button-background-color: var(--bg); --xy-controls-button-color: var(--fg); --xy-minimap-background-color: var(--bg); }
+.react-flow__node:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 8px; }
+.jb-card { width: 240px; min-height: 100px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--fg); font-size: 0.85rem; position: relative; box-shadow: 0 1px 2px rgb(0 0 0 / 0.08); }
+.jb-large { width: 320px; min-height: 160px; }
+.jb-card-title { font-weight: 600; margin-bottom: 4px; overflow-wrap: anywhere; }
+.jb-card-meta, .jb-card-fields { display: flex; flex-wrap: wrap; gap: 4px 8px; color: var(--muted); font-size: 0.78rem; }
+.jb-card-children { margin-top: 4px; font-size: 0.78rem; color: var(--muted); }
+.jb-pill { border: 1px solid; border-radius: 999px; padding: 0 6px; font-weight: 600; }
+.jb-warn { color: #b45309; }
+.jb-fresh-stale { color: #b91c1c; } .jb-fresh-aging { color: #b45309; } .jb-fresh-never { color: var(--muted); font-style: italic; }
+.jb-product { border-width: 2px; padding-top: 0; }
+.jb-product-band { margin: 0 -10px 6px; padding: 2px 10px; background: color-mix(in srgb, var(--accent) 18%, transparent); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; border-radius: 6px 6px 0 0; }
+.jb-section { width: 100%; height: 100%; border: 2px dashed; border-radius: 12px; }
+.jb-section-label { padding: 6px 10px; font-weight: 700; }
+.jb-text { padding: 2px 4px; max-width: 480px; white-space: pre-wrap; }
+.jb-stats-headline { font-size: 1.2rem; font-weight: 700; }
+.jb-stats-rows { list-style: none; padding: 0; margin: 4px 0; }
+.jb-stats-rows li { display: flex; align-items: center; gap: 6px; } .jb-stats-rows li span:last-child { margin-left: auto; }
+.jb-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+.jb-unsupported { border-style: dashed; color: var(--muted); }
+.jb-dimmed { opacity: 0.25; }
+.jb-highlight { box-shadow: 0 0 0 3px var(--accent); }
+.jb-selected { box-shadow: 0 0 0 2px var(--accent); }
+.jb-comment-badge { position: absolute; top: -10px; right: -10px; min-width: 22px; height: 22px; border-radius: 11px; background: var(--accent); color: var(--bg); font-size: 0.75rem; display: grid; place-items: center; }
+.jb-handle { width: 10px !important; height: 10px !important; background: var(--accent) !important; }
+.jb-handle-hidden { opacity: 0; pointer-events: none; width: 1px !important; height: 1px !important; }
+.jb-pin { position: absolute; width: 26px; height: 26px; border-radius: 13px 13px 13px 2px; background: #f59e0b; color: #111; font-size: 0.75rem; font-weight: 700; border: 0; pointer-events: all; }
+.jb-pin-resolved { background: #9ca3af; }
+.jb-cursor { position: absolute; pointer-events: none; display: flex; gap: 2px; align-items: flex-start; }
+.jb-cursor span { color: #fff; font-size: 0.7rem; padding: 0 4px; border-radius: 3px; }
+@media (max-width: 900px) { .jb-panel { position: absolute; right: 0; top: 0; bottom: 0; z-index: 5; width: min(360px, 100%); } .jb-sidebar { width: 260px; } }

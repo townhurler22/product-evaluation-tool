@@ -6,6 +6,8 @@ type Listener = () => void;
 
 export interface UiState {
   panelNodeId: string | null;
+  panelEdgeId: string | null;
+  selection: readonly string[];
   deletedNotice: string | null;      // JB-1504
   dimmed: ReadonlySet<string>;
   highlighted: string | null;
@@ -17,7 +19,7 @@ export interface UiState {
 
 export class UiStore {
   state: UiState = {
-    panelNodeId: null, deletedNotice: null, dimmed: new Set(), highlighted: null, filters: emptyFilters(),
+    panelNodeId: null, panelEdgeId: null, selection: [], deletedNotice: null, dimmed: new Set(), highlighted: null, filters: emptyFilters(),
     isolate: null, commentCounts: new Map(), live: 'polling',
   };
   private listeners = new Set<Listener>();
