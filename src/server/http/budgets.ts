@@ -31,6 +31,31 @@ export const STATEMENT_BUDGETS = {
   'GET /api/core/admin/intake/clients/:id/log': 2,
   'POST /api/core/admin/intake/reviews': 3,
   'PUT /api/core/admin/intake/pause': 3,
+  // Journey Boards (§11.2). Board access is 1 statement (D-23); content is 4 (PERF-24).
+  'GET /api/jb/boards': 2,                         // metadata only (PERF-24, PT-09)
+  'POST /api/jb/boards': 11,                       // journey checks 2, board + fields + nodes + edges, content 4
+  'GET /api/jb/boards/:id/content': 5,             // access, nodes, edges, fields
+  'GET /api/jb/boards/:id/changes': 3,
+  'POST /api/jb/boards/:id/ops': 12,               // access, lock+replay, ≤ 2 per table, integrity, change+counters, replay race
+  'PATCH /api/jb/boards/:id/viewport': 3,
+  'PATCH /api/jb/boards/:id/access': 4,
+  'DELETE /api/jb/boards/:id': 7,
+  'POST /api/jb/boards/:id/transfer': 6,
+  'GET /api/jb/boards/:id/comments': 3,
+  'POST /api/jb/boards/:id/comments': 6,
+  'POST /api/jb/boards/:id/comments/:threadId': 6,
+  'PATCH /api/jb/boards/:id/comments/:threadId': 5,
+  'DELETE /api/jb/boards/:id/comments/:threadId': 4,
+  'PATCH /api/jb/boards/:id/comments/:threadId/messages/:messageId': 6,
+  'DELETE /api/jb/boards/:id/comments/:threadId/messages/:messageId': 7,
+  'GET /api/jb/boards/:id/collaborators': 4,
+  'POST /api/jb/boards/:id/collaborators': 5,
+  'PATCH /api/jb/boards/:id/collaborators': 4,
+  'DELETE /api/jb/boards/:id/collaborators': 4,
+  'GET /api/jb/boards/:id/images': 4,              // access, jb_image, core_file (+ signing, no SQL)
+  'POST /api/jb/boards/:id/images': 4,
+  'POST /api/jb/boards/export': 5,                 // access for all boards, nodes, edges, fields (≤ 20 boards)
+  'POST /api/jb/boards/import': 10,                // boards and journeys: 4 inserts each level, list 1
 } as const satisfies Record<string, number>;
 
 export type BudgetKey = keyof typeof STATEMENT_BUDGETS;
