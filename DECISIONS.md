@@ -108,3 +108,32 @@ Operations: re-run `pnpm supabase:setup` to add the nightly `fh.reconcile` cron 
 | Registrations | `src/server/registrations.ts` imports `@/modules/jb/register` (channel rule, share resolver and policy, file owner resolver, `jb.compact` job); the realtime token and share-link routes import it. `db/supabase/setup.sql` schedules `jb.compact` nightly | Registries fill at import time, as with jobs |
 
 **Timing budgets (PT-09 to PT-13, PT-15)** are not measured here. `pnpm perf:p4 https://<deployment>` measures PT-09, PT-10 (server side), PT-13 and PT-15 on boards it creates (named `[perf-p4] …`, deleted afterwards) and prints the browser-only checks (PT-10 interactive time, PT-11, PT-12) as MANUAL steps. Statement counts are tested on PGlite, including the base and 10× fixture (PT-16).
+
+## P5 Journey mapping and demand: choices and deviations (27 Nov 2026)
+
+OD-16 to OD-19: recommended defaults (a), as confirmed above. Flagged to the product owner per §0 rule 6.
+
+| Spec | Built | Why |
+|---|---|---|
+| Overlay link read on `core_link (from_scope_id, relation)` joined to `jb_board_scope` (PERF-30) | Core's `links.linksForBoard` reads, in **one statement**, the boards in scope, their live Product cards and their links. Journey Boards publishes two read-only contract views: `jb_board_scope` gains `parent_node_id`, and new `jb_card_scope` lists live Product cards (§6.7) | Only live cards contribute demand (INT-10); without the card list in the same statement the overlay would need a 5th statement |
+| `demandForSets` returns counts, dates and gone Feature ids | Also takes optional `journeyIds` (gone Journeys) and `describe` (Feature refs with path and sub-feature counts), same statement | Attention for top-level cards and the panel's Feature list without extra statements (PERF-B16, INT-48) |
+| Caps: §11.4 says 500 sets / 200 ids, INT-47 says 5,000 / 2,000 | 5,000 sets, 2,000 ids per set | The looser of the two; the statement count is unchanged |
+| `ideasUnder` and `breakdown`: 2 statements | 1 statement each (total and page together) | Within budget |
+| `assignJourneyIdeas(journeyId, featureIds)` | Batched `{assignments: [{journeyId, featureIds}]}`, one statement with data-modifying CTEs | INT-20 re-assigns every Journey left behind at a fixed statement count |
+| Sync order "(a) Core link write, (b) Feedback Hub ensure and assign" (INT-24) | (1) ensure, (2) assign the target (with this card) and every Journey left behind (without it), (3) replace the card's link | The link write needs the ensured id; assigning left-behind Journeys before the link moves makes every partial failure converge on rerun (tested by injecting failures at steps 2 and 3) |
+| `jb.demand.notify` after idea writes (PERF-31, INT-53) | Statement-level triggers (0006) on `fh_idea`, `fh_feature` and `fh_journey` mark changed Features or Journeys in `fh_demand_dirty` and queue one deduplicated `jb.demand.notify` job | No write path, including P2 intake, can forget. Feedback Hub still writes nothing on boards. The trigger inserts into `core_job` from SQL: the only cross-module SQL, and it lives in a migration, not module code |
+| `demand.changed` on the board channel, no polling (PERF-31) | The job bumps `jb_board.demand_rev` (the board and its parent) and publishes `demand.changed`. Every `changes?since=` response carries `demandRev`; the client refetches the overlay when it moves | Production has no realtime yet (P0 known gap). Boards already poll every 1 s, so attention flags arrive within the poll interval (D-27) with no extra request |
+| Debounce `jb.demand.notify` 2 s per board | One queued job per dedupe key, drained straight after the response; no 2 s per-board delay | D-27 needs the flag within 1 s; the job is 5 statements whatever the number of boards |
+| Job drain | `drainJobs` claims only kinds the process has handlers for; Feedback Hub's after-response drain imports the job registry | A function bundle without the handler no longer burns an attempt and backs off a minute |
+| Detailed journey name "<card title> — journey" (INT-06) | "<card title>: detailed journey" | No em dashes in UI copy |
+| INT-08 breadcrumb "parent board › card title", "Card deleted", and a "Detailed journeys" list in parent board settings | Breadcrumb "parent board › Product card", the second part a deep link that opens the card or says "That card no longer exists" (JB-105); the journey's name already carries the card title. No "Detailed journeys" list yet | Needs a parent-card read outside the budgets; listed as not built |
+| INT-18 "names only cards the user can view and counts the rest" | Built as written: `sharedBy {cards, hidden}` | Confirm with the product owner |
+| ARC-19 `{available: false}` | Every active staff member reads Feedback Hub (members read, feedback admins write), so it appears only without a principal | §12.1 has no narrower Feedback Hub read grant |
+| Breakdown statuses | `byStatus` keys bug statuses as `bug:<STATUS>` | One map; bug and idea statuses share names |
+| Not built in P5 | "Detailed journeys" list in board settings; the panel's "Linked to a Journey you cannot see" (cannot occur, see ARC-19); NFR-07 axe-core and E2E (no Playwright harness yet, as P1 and P4); realtime `demand.changed` is tested only as a published event, the polling path end to end | |
+
+Statement counts (PGlite, base and 10× fixture, identical): overlay 4 (PERF-B16 ≤ 4), panel summary 4, ideas 4, breakdown 4, Mapped on boards 3, Journey sync 15 on a first sync that leaves a Journey behind and 13 in steady state, the same with 10 and with 100 boards (PT-18). Service methods are in the budget registry and tested at two input sizes.
+
+**Timing budgets (PT-14, PT-18, D-27 end to end)**: `pnpm perf:p5 https://<deployment>` signs in with the demo button, builds self-labelled data (`[perf-p5] …` Features, ideas, a 40-card board with 40 detailed journeys of 50 cards, links), measures, and deletes all of it afterwards. Never the fixture on the live database.
+
+New dependencies: none. Operations: `pnpm db:migrate` before deploying P5 (migration `0006_jb_mapping`, independent of `0005`).

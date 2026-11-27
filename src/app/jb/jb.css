@@ -110,7 +110,7 @@
 .jb-fh-search input { background: transparent; color: inherit; border: 1px solid var(--border); border-radius: 4px; padding: 4px 6px; font: inherit; }
 .jb-fh-search ul { list-style: none; padding: 0; margin: 0; }
 .jb-ideas ul { margin: 4px 0; padding-left: 16px; }
-.jb-legend { position: absolute; left: 12px; bottom: 12px; z-index: 5; display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); font-size: 0.8rem; }
+.jb-legend { position: absolute; left: 56px; bottom: 12px; z-index: 5; display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); font-size: 0.8rem; }
 .jb-legend-swatches, .jb-legend-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .jb-legend-item { display: inline-flex; gap: 4px; align-items: center; }
 .jb-legend button { min-height: 24px; padding: 1px 8px; border: 1px solid var(--border); border-radius: 6px; background: transparent; color: inherit; }

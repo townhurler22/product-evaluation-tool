@@ -4,7 +4,7 @@
 import '@xyflow/react/dist/style.css';
 import { ReactFlowProvider, useReactFlow } from '@xyflow/react';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { BoardMeta } from '../../server/access';
 import { BoardProvider, useBoard, useStoreSelect, useUi, type BoardCtx } from '../context';
 import { BoardLive, stableColour, type Cursor, type PresenceUser } from '../live';
@@ -78,7 +78,9 @@ function Board({ boardId, loaded, deepNodeId }: { boardId: string; loaded: Loade
     boardId, userId: loaded.me.userId, fetch: (u, i) => fetch(u, i), onChange: (v) => ui.set({ demand: v }),
     storage: typeof window === 'undefined' ? null : (() => { try { return window.localStorage; } catch { return null; } })(),
   }), [boardId, loaded.me.userId, ui]);
-  const hasProducts = useStoreSelect((s) => { for (const n of s.view.nodes.values()) if (n.kind === 'product-card') return true; return false; });
+  // The board component sits outside its own provider, so it subscribes to the store directly.
+  const anyProduct = () => { for (const n of store.view.nodes.values()) if (n.kind === 'product-card') return true; return false; };
+  const hasProducts = useSyncExternalStore(store.subscribe, anyProduct, anyProduct);
   useEffect(() => { demand.setEnabled(hasProducts); }, [demand, hasProducts]);
   const rf = useReactFlow();
   const [status, setStatus] = useState<SyncStatus>({ kind: 'saved' });
