@@ -11,9 +11,10 @@ import { api, downloadExport } from '../_lib/api';
 import { keys, type Lookups } from '../_lib/data';
 import { rowStore } from '../_lib/rows';
 import { fmtCount, runChunks } from '../_lib/selection';
+import PublishDialog from './publish-dialog';
 import { btn, Dialog, input } from './ui';
 
-type Action = 'accept' | 'status' | 'milestone' | 'themes' | 'delete';
+type Action = 'accept' | 'status' | 'milestone' | 'themes' | 'delete' | 'publish';
 
 export default function BulkBar({ ids, spec, columns, lookups, isAdmin, onClear, onDeleted, onMessage }: {
   ids: string[]; spec: ViewSpecInput; columns: string[]; lookups?: Lookups; isAdmin: boolean;
@@ -52,6 +53,7 @@ export default function BulkBar({ ids, spec, columns, lookups, isAdmin, onClear,
           <button className={btn} disabled={!oneWorkflow} title={oneWorkflow ? undefined : 'Select ideas from one workflow to set their status'} onClick={() => setDialog('status')}>Set status…</button>
           <button className={btn} onClick={() => setDialog('milestone')}>Milestone…</button>
           <button className={btn} onClick={() => setDialog('themes')}>Themes…</button>
+          <button className={btn} onClick={() => setDialog('publish')}>Publish to forum…</button>
         </>
       )}
       <button className={btn} onClick={async () => {
@@ -76,6 +78,7 @@ export default function BulkBar({ ids, spec, columns, lookups, isAdmin, onClear,
           options={lookups.themes.map((t) => ({ value: t.id, label: t.name }))}
           onClose={() => setDialog(null)} onPick={(v, _c, action) => run(action === 'remove' ? 'Removing' : 'Adding', action === 'remove' ? 'Removed from' : 'Added to', '/api/fh/ideas/bulk/themes', { themeId: v, action })} />
       )}
+      {dialog === 'publish' && <PublishDialog ids={ids} onClose={() => setDialog(null)} onDone={onMessage} />}
       {dialog === 'delete' && (
         <Dialog title={`Delete ${fmtCount(ids.length)} ideas?`} onClose={() => setDialog(null)}>
           {/* FH-155 */}

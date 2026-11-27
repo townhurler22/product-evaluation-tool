@@ -39,7 +39,7 @@ export const COLUMNS: ColumnDef[] = [
   { id: 'companyCount', label: 'Companies count', sort: true, numeric: true, width: 100 },
   { id: 'arr', label: 'ARR', sort: true, numeric: true, width: 110 },
   { id: 'insights', label: 'Insights', sort: true, numeric: true, width: 90 },
-  { id: 'votes', label: 'Votes', sort: true, numeric: true, width: 80 },
+  { id: 'votes', label: 'Voters', sort: true, numeric: true, width: 80 }, // D-35: distinct voters; the vote total is in the panel
   { id: 'startDate', label: 'Start', sort: true, edit: 'date', width: 120 },
   { id: 'dueDate', label: 'Due', sort: true, edit: 'date', width: 120 },
   { id: 'estimateDays', label: 'Estimate (days)', sort: true, numeric: true, edit: 'int', width: 110 },

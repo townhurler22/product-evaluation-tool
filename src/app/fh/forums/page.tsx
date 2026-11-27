@@ -1,5 +1,5 @@
-import Placeholder from '../_components/placeholder';
+import ForumsAdmin from '../_components/forums-admin';
 
 export default function ForumsPage() {
-  return <Placeholder title="Forums" adminOnly note="Forum administration arrives in phase P3." />;
+  return <ForumsAdmin />;
 }
