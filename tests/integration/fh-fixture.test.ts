@@ -20,6 +20,14 @@ import { POST as mergeRoute } from '@/app/api/fh/ideas/[id]/merge/route';
 import { GET as roadmapRoute } from '@/app/api/fh/roadmap/route';
 import { GET as boardRoute } from '@/app/api/fh/board/route';
 import { GET as companiesRoute } from '@/app/api/fh/companies/route';
+import { GET as triageCountsRoute } from '@/app/api/fh/ideas/triage-counts/route';
+import { GET as imagesRoute } from '@/app/api/fh/ideas/[id]/images/route';
+import { GET as reportingRoute } from '@/app/api/fh/reporting/route';
+import { GET as companyRoute } from '@/app/api/fh/companies/[id]/route';
+import { GET as peopleRoute } from '@/app/api/fh/people/route';
+import { GET as personRoute } from '@/app/api/fh/people/[id]/route';
+import { refreshReporting } from '@/modules/fh/reporting';
+import { MemoryStorage, setStorage } from '@/modules/core/files/storage';
 import type { IdeaRow } from '@/modules/fh/rows';
 
 const IDEA = (g: number) => `0190c3a5-0000-7000-8000-${g.toString(16).padStart(12, '0')}`;
@@ -99,6 +107,17 @@ describe('PT-16: statement counts do not grow with data', () => {
     await run('roadmap', roadmapRoute, { path: `/api/fh/roadmap?${specQ()}&from=2026-01-01&to=2026-06-30` });
     await run('board', boardRoute, { path: `/api/fh/board?${specQ()}&group=status` });
     await run('companies', companiesRoute, { path: '/api/fh/companies?q=company' });
+    // P2: triage, people and reporting (PT-16), and PT-17's duplicate match read above ('matches').
+    setStorage(new MemoryStorage());
+    await refreshReporting();
+    await run('triage counts', triageCountsRoute, { path: `/api/fh/ideas/triage-counts?${specQ({ view: 'triage', filters: { source: ['CALL'] } })}` });
+    await run('images', imagesRoute, { params: { id: IDEA(1) } });
+    await run('reporting', reportingRoute, { path: '/api/fh/reporting' });
+    await run('companies full', companiesRoute, { path: '/api/fh/companies?full=1' });
+    await run('companies full search', companiesRoute, { path: '/api/fh/companies?full=1&q=company 1' });
+    await run('company detail', companyRoute, { params: { id: '0190c3a0-0000-7000-8000-000000000001' } });
+    await run('people full', peopleRoute, { path: '/api/fh/people?full=1&q=person' });
+    await run('person detail', personRoute, { params: { id: '0190c3a1-0000-7000-8000-000000000001' } });
     await run('create', createRoute, { method: 'POST', body: { title: 'Measured create' } });
     await run('patch', patchRoute, { method: 'PATCH', params: { id: IDEA(7) }, body: { title: 'Measured edit' } });
     await run('status', statusRoute, { method: 'PUT', params: { id: IDEA(9) }, body: { status: 'IDEA_CLOSED' } });
