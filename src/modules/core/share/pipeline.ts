@@ -141,6 +141,9 @@ export function shareRoute(opts: ShareRouteOptions, handler: ShareHandler) {
       }
       for (const [k, v] of Object.entries(SHARE_HEADERS)) res.headers.set(k, v);
       res.headers.set('x-statement-count', String(ctx.statements));
+      // Server-Timing as on staff routes (PT-19 reads it). The 404 above never carries it: its bytes are fixed.
+      const total = performance.now() - ctx.startedAt;
+      res.headers.set('Server-Timing', `auth;dur=0.0, db;dur=${ctx.dbMs.toFixed(1)}, pool;dur=${ctx.poolMs.toFixed(1)}, app;dur=${Math.max(0, total - ctx.dbMs - ctx.poolMs).toFixed(1)}`);
       const budget = (STATEMENT_BUDGETS as Record<string, number>)[opts.route];
       if (budget !== undefined) res.headers.set('x-statement-budget', String(budget)); // NFR-21, as on staff routes
       return res;

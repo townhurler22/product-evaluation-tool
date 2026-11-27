@@ -139,3 +139,33 @@ Flagged to the product owner per §0 rule 6. Migration `0005_fh_triage`.
 New dependencies: none.
 
 Operations: `pnpm db:migrate` (migration `0005_fh_triage`) before deploying P2, then re-run `pnpm supabase:setup` to add the `pet-fh-reporting` cron (every 5 minutes) and revoke Data API access to `fh_reporting_mv`. To receive intake, create clients in the admin console with routes `call-requests` / `support-submissions`, record the gateway and client reviews, and issue keys; set `intake.staff_domains` so staff are never created as external people.
+
+## P3 Public forum: choices and deviations (27 Nov 2026)
+
+Flagged to the product owner per §0 rule 6. Migration `0007_fh_forum` (independent of `0006`). OD-03, OD-04, OD-08, OD-14, OD-20 and OD-21 at their recommended defaults (a).
+
+| Spec | Built | Why |
+|---|---|---|
+| `fh_status_config` "missing rows mean not public" | The migration seeds starting labels: Planned, In progress, Complete (kind complete), Closed (kind closed), Fixed, and the bug equivalents. Reads never insert rows | Without them a new forum shows only "Under consideration". Admins change them in Status visibility |
+| A post's public status | The status of the **earliest-linked live idea** (a post may link to several after a merge). Not public, or no idea: the `forum.default_label` setting ("Under consideration"). A public status with no label also shows the default | The spec does not say which idea wins; earliest link is stable |
+| `GET forum/similar` needs SUBMIT (§11.3), and SEC-07 spends a use on every non-VIEW request | The capability is checked, but this read **spends no use and counts toward no write limit** (`readOnly` share route option) | Typing a title would otherwise use up a max-uses link and the 30-per-hour submit limit |
+| SEC-07 step 4 counted every request on a password link toward "10 attempts per 15 minutes" | **Only wrong passwords count.** The failure count is read in the link lookup statement (no extra statement); a wrong password increments it | A visitor who knew the password was locked out after 10 API calls, i.e. one page load and a few votes. This was a P0 bug that P3 exposed |
+| SEC-07 step 7 per-IP and per-identity limits | Share routes declare `limits` and `identity`; the pipeline looks up the visitor from the cookie, applies both limits, then spends the use. 429 answers now carry `Retry-After` (share and staff routes, SEC-27) | Limits must run before the use is spent |
+| Handler 404s on the share path | A handler 404 or a `not_found` error is replaced by the pipeline's fixed 404, so a post outside the link's forum is byte-identical to a missing link | SEC-07 / INV-15 |
+| `GET forum/posts` paging | `cursor` is the offset of the next page (50 per page); "now" is a `now` parameter fixed by the page at load (FH-1205) | Trending order depends on "now"; offsets are cheap at forum sizes (300 posts in the fixture) |
+| "Newest 300 searchable client-side; server search beyond that" (FH-1204) | Loaded posts are filtered at once while typing; the server search (debounced) then replaces the list | Same result with one code path |
+| FH-1104 "refused for archived forums (409)" | A module **create guard** on share-link creation (`registerShareCreateGuard`), so Core still owns `/api/core/share-links`. Link creation is 5 statements (was 4) | The manage policy can only answer yes or no (404) |
+| FH-1213 company by domain | A company whose `domain` matches the email domain, skipping `intake.public_email_domains` and `intake.staff_domains`. A visitor who already has a company keeps it | Same domain rules as intake |
+| FH-1212 activity | Forum-created ideas also get an activity row "Created from the forum: <forum>" | The panel's activity otherwise starts empty |
+| FH-412 "each idea's own transaction" vs PERF-03 fixed statement counts | Publish runs 3 statements per idea (lock and re-check, one statement for post, link, vote, event, activity and version bump, roll-up). Budget 155 for 50 items | The spec asks for per-idea transactions; the count is fixed per item, not per data size |
+| Post images in the multipart body | Server cap 7 MB per request (three 2 MB screenshots). **Vercel caps function request bodies at 4.5 MB**, so three full-size screenshots can fail on the host; client downscaling usually keeps them well under | Flagged. The fix, if needed, is direct upload to storage with signed upload URLs |
+| D-35 | The idea panel shows **Distinct voters** and **Vote total** as two tiles; the table column is now labelled **Voters** (distinct). Team votes count in the total, not in user counts (OD-14) | The previous single "Votes" tile showed voters with the total only in a tooltip |
+| FH-1203 admin banner | The page asks `/api/me` (a staff route) from the browser; share routes still never read the staff session (ARC-14) | |
+| Change a link's password (FH-1104) | A browser prompt asks for the new password | Small, rare admin action; the delete confirm (FH-1108) is inline as required |
+| Not built in P3 | Live updates of the public forum (it reloads on navigation); realtime publish of idea rows after votes (roll-ups are updated in the same transaction; the ideas list catches up on its next fetch or edit); NFR-07 axe pass and screen-reader pass (no Playwright harness, as P1 and P2) | |
+
+**Acceptance on PGlite:** INV-16 share contract (exact key sets for every forum share response, and a scan for owner, theme, comment, description, internal status, email and requester values), byte-identical 404s for missing, malformed, revoked, expired, used-up, archived, capability, wrong-method and other-forum requests, INV-15, D-34 (both workflows, files removed, audit), D-35, D-36, FH-1213 identity rules, vote races, per-visitor 429, erasure of vote events, authorisation matrix for the new staff routes (post delete needs the grant, not a role), and PT-19 statement counts and sizes with 300 posts and 20,000 votes and again with 3,000 posts (3 statements per read, well under 150 KB). The forum page was checked at 360 px with no horizontal scroll. **Timing** (PT-19 ≤ 300 ms): `pnpm perf:p3 https://<deployment>`; it creates a `[perf-p3]` forum, link and posts, then erases its visitor, deletes the ideas, revokes the link and archives the forum. The posts stay in that archived forum unless the demo account holds the post-delete grant (there is no forum delete).
+
+New dependencies: none.
+
+Operations: `pnpm db:migrate` (migration `0007_fh_forum`) before deploying P3. The migration enables row level security on its two new tables; re-running `pnpm supabase:setup` is harmless but not required. To open a forum: Forums → Create a forum → Make main forum → Share links → Create link, and copy the address (shown once).
