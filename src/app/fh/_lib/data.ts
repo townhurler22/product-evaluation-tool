@@ -15,7 +15,7 @@ export interface Owner { id: string; name: string }
 export interface Lookups {
   features: Feature[]; journeys: Journey[]; themes: Theme[]; milestones: Milestone[]; owners: Owner[];
   settings: { currency: string; releaseTrain: { anchor: string; lengthDays: number }; planningYearStartMonth: number };
-  access: { feedbackAdmin: boolean; userId: string };
+  access: { feedbackAdmin: boolean; canDeletePosts?: boolean; userId: string };
 }
 
 export const keys = {

@@ -17,6 +17,7 @@ import { rowStore, useRow } from '../_lib/rows';
 import { orderedFeatures } from './cells';
 import MappedOnBoards from './mapped-on-boards';
 import { CompanyPick } from './cell-editor';
+import PublishDialog from './publish-dialog';
 import { btn, btnPrimary, Chip, Dialog, input, Markdown, money, shortDate, StatusPill } from './ui';
 
 interface Summary {
@@ -71,6 +72,7 @@ export default function IdeaPanel({ id, lookups, isAdmin, onClose, onOpen, onNav
   const row = useRow(id);
   const [error, setError] = useState('');
   const [merging, setMerging] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   // Deep link (PERF-12): the row is not cached, so load it alongside the summary.
   useEffect(() => {
@@ -191,7 +193,17 @@ export default function IdeaPanel({ id, lookups, isAdmin, onClose, onOpen, onNav
                   rowStore.upsert(r.rows);
                 }}>Accept</button>
               )}
-              <p className="mt-2 text-xs text-[var(--muted)]">Publishing to the forum arrives with the public forum (P3).</p>
+              {isAdmin && (() => {
+                // FH-213: disabled with the reason for a Question or an idea already on a forum.
+                const why = row.ideaType === 'QUESTION' ? 'Questions cannot be published.' : row.onForum ? 'Already on a forum.' : null;
+                return (
+                  <div className="mt-2">
+                    <button className={btn} disabled={!!why} aria-describedby={why ? `pub-why-${id}` : undefined} onClick={() => setPublishing(true)}>Publish to forum…</button>
+                    {why && <span id={`pub-why-${id}`} className="ml-2 text-xs text-[var(--muted)]">{why}</span>}
+                  </div>
+                );
+              })()}
+              {publishing && <PublishDialog ids={[id]} onClose={() => setPublishing(false)} onDone={(m) => setError(m)} />}
               {matches.data && matches.data.length > 0 && (
                 <div className="mt-2">
                   <h4 className="text-sm font-medium">Possible duplicates</h4>
@@ -265,7 +277,9 @@ export default function IdeaPanel({ id, lookups, isAdmin, onClose, onOpen, onNav
               <Tile label="Companies" value={row.companyCount} />
               <Tile label="ARR" value={money(row.arr, currency)} />
               <Tile label="Insights" value={row.insightCount} />
-              <Tile label="Votes" value={row.distinctVoters} title={`${row.voteTotal} votes in total from ${row.distinctVoters} distinct voters`} />
+              {/* D-35: vote total and distinct voters are separate, labelled numbers (team votes count in the total). */}
+              <Tile label="Distinct voters" value={row.distinctVoters} />
+              <Tile label="Vote total" value={row.voteTotal} />
             </dl>
           </Section>
           <Section title="Details">

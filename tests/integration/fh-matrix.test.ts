@@ -35,7 +35,15 @@ describe('authorisation matrix (NFR-16)', () => {
     'POST companies': { name: 'x' }, 'PATCH companies/[id]': { name: 'x' }, 'POST companies/delete': { ids: [ID] },
     'POST people': { displayName: 'x' }, 'PATCH people/[id]': { displayName: 'x' },
     'POST people/erase': { ids: [ID], confirm: 'ERASE' },
+    // P3
+    'GET forums': undefined, 'POST forums': { name: 'x' }, 'GET forums/[id]': undefined, 'PATCH forums/[id]': { name: 'x' },
+    'GET forums/[id]/posts': undefined, 'PATCH forums/[id]/posts/[postId]': { title: 'x' },
+    'POST forums/[id]/posts/[postId]/team-vote': undefined, 'DELETE forums/[id]/posts/[postId]/team-vote': undefined,
+    'GET status-config': undefined, 'PUT status-config': { items: [{ statusKey: 'IDEA_OPEN', isPublic: false, label: null, kind: null }] },
+    'POST ideas/publish/preview': { ids: [ID] }, 'POST ideas/publish': { forumId: ID, items: [{ ideaId: ID, title: 'x' }] },
   };
+  // OD-03 / SEC-02: the post-delete grant, never implied by a role. Feedback admins without it are refused too.
+  const GRANT_ONLY: Record<string, unknown> = { 'DELETE forums/[id]/posts/[postId]': undefined };
   const MEMBER: Record<string, unknown> = {
     'GET lookups': undefined, 'GET ideas': undefined, 'POST ideas': { title: 'x' }, 'GET ideas/facets': undefined,
     'POST ideas/ids': { viewSpec: {} }, 'POST ideas/export': { viewSpec: {}, columns: ['title'] }, 'GET ideas/[id]': undefined,
@@ -56,8 +64,20 @@ describe('authorisation matrix (NFR-16)', () => {
     .map((m) => ({ key: `${m[1]} ${relative(root, f).split(sep).slice(0, -1).join('/')}`, file: f, method: m[1] })));
 
   it('covers every Feedback Hub route', () => {
-    expect(routes.map((r) => r.key).sort()).toEqual([...Object.keys(ADMIN_ONLY), ...Object.keys(MEMBER)].sort());
+    expect(routes.map((r) => r.key).sort()).toEqual([...Object.keys(ADMIN_ONLY), ...Object.keys(MEMBER), ...Object.keys(GRANT_ONLY)].sort());
   });
+
+  for (const key of Object.keys(GRANT_ONLY)) {
+    it(`${key} (grant only)`, async () => {
+      const r = routes.find((x) => x.key === key)!;
+      const h = (await import(/* @vite-ignore */ r.file))[r.method];
+      const opts = { method: r.method, path: `/api/fh/${key.split(' ')[1]}`, params: { id: ID, postId: ID } };
+      expect((await call(h, opts)).status).toBe(401);
+      expect((await call(h, { ...opts, cookie: member })).status).toBe(403);
+      clearPrincipalCache();
+      expect((await call(h, { ...opts, cookie: pm })).status).toBe(403);
+    });
+  }
 
   for (const key of [...Object.keys(ADMIN_ONLY), ...Object.keys(MEMBER)]) {
     it(`${key}`, async () => {

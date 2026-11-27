@@ -12,7 +12,7 @@ export const STATEMENT_BUDGETS = {
   'POST /api/internal/jobs/drain': 3,     // claim + finish per batch; job bodies count separately
   'POST /api/core/realtime/token': 2,     // preamble + 1 per jb.board channel (clients ask for one board at a time)
   'GET /api/core/share-links': 3,           // principal + policy + list
-  'POST /api/core/share-links': 4,          // principal + policy + insert + audit
+  'POST /api/core/share-links': 5,          // principal + policy + module create guard + insert + audit
   'PATCH /api/core/share-links/:id': 5,
   'POST /api/core/share-links/:id/revoke': 5,
   // Workspace admin console (ARC-16). The preamble counts as 1 on a principal-cache miss.
@@ -96,6 +96,33 @@ export const STATEMENT_BUDGETS = {
   'PATCH /api/fh/people/:id': 7,
   'POST /api/fh/people/erase': 14,             // exists, audit, FH erasePerson ≤ 8, files ≤ 2, delete, audit (any batch size)
   'GET /api/fh/reporting': 3,                  // one read of fh_reporting_mv (FH-854); + a debounced refresh job when stale
+  // Feedback Hub P3: forum administration and publishing.
+  'GET /api/fh/forums': 2,                     // forums with post counts and share links in one statement
+  'POST /api/fh/forums': 4,                    // insert (slug clash via ON CONFLICT), audit, read back
+  'GET /api/fh/forums/:id': 2,
+  'PATCH /api/fh/forums/:id': 6,               // lock, clear previous main, update, audit, read back
+  'GET /api/fh/forums/:id/posts': 2,           // page with voters, linked ideas and total in one statement
+  'PATCH /api/fh/forums/:id/posts/:postId': 3,
+  'DELETE /api/fh/forums/:id/posts/:postId': 12, // lock, ideas, files, delete ideas, delete post, roll-ups, audit, files ≤ 2, rows
+  'POST /api/fh/forums/:id/posts/:postId/team-vote': 3,
+  'DELETE /api/fh/forums/:id/posts/:postId/team-vote': 3,
+  'GET /api/fh/status-config': 2,
+  'PUT /api/fh/status-config': 4,
+  'POST /api/fh/ideas/publish/preview': 3,     // main forum, ideas
+  // FH-412 asks for one transaction per idea, so this grows with the request (≤ 50 items): main forum + 3 per idea +
+  // audit + the changed rows. The PT-16 check is that it stays at 3 per idea on any fixture size.
+  'POST /api/fh/ideas/publish': 155,
+  // Public forum share routes (§11.3). Pipeline: link lookup (with the password-failure count) + resolver = 2.
+  // Writes add: visitor lookup, IP and visitor limits, use consumption and the use row (≤ 5). PT-19: reads ≤ 3.
+  'GET /api/share/:token/fh/forum': 3,
+  'GET /api/share/:token/fh/forum/posts': 3,
+  'GET /api/share/:token/fh/forum/roadmap': 3,
+  'GET /api/share/:token/fh/forum/similar': 3,
+  'GET /api/share/:token/fh/posts/:postId/images': 4,
+  'POST /api/share/:token/fh/posts': 17,       // pipeline 7 + author ≤ 2, post, idea, insight, files, roll-up, match job, read back
+  'PATCH /api/share/:token/fh/posts/:postId': 9,
+  'POST /api/share/:token/fh/posts/:postId/vote': 10,
+  'DELETE /api/share/:token/fh/posts/:postId/vote': 9,
   // Intake (§10): gateway ≤ 5 (key, rate window, receipt check, log, last used) + the accepted transaction ≤ 14 (ING-22).
   'POST /api/ingest/fh/v1/call-requests': 19,
   'POST /api/ingest/fh/v1/support-submissions': 19,

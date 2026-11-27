@@ -15,6 +15,7 @@
     "perf:p0": "tsx scripts/perf-p0.ts",
     "perf:p1": "tsx scripts/perf-p1.ts",
     "perf:p2": "tsx scripts/perf-p2.ts",
+    "perf:p3": "tsx scripts/perf-p3.ts",
     "perf:p4": "tsx scripts/perf-p4.ts",
     "perf:p5": "tsx scripts/perf-p5.ts"
   },

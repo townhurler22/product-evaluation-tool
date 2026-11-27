@@ -5,14 +5,15 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["@electric-sql/pglite"],
   // SEC-12: share pages leak nothing through Referer, are never indexed and never cached.
   async headers() {
-    return [{
-      source: "/b/:path*",
-      headers: [
-        { key: "Referrer-Policy", value: "no-referrer" },
-        { key: "X-Robots-Tag", value: "noindex, nofollow" },
-        { key: "Cache-Control", value: "no-store" },
-      ],
-    }];
+    const shareHeaders = [
+      { key: "Referrer-Policy", value: "no-referrer" },
+      { key: "X-Robots-Tag", value: "noindex, nofollow" },
+      { key: "Cache-Control", value: "no-store" },
+    ];
+    return [
+      { source: "/b/:path*", headers: shareHeaders },
+      { source: "/f/:path*", headers: shareHeaders }, // public forum (FH-1201)
+    ];
   },
 };
 

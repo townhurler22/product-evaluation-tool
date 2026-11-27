@@ -85,19 +85,24 @@ export async function ideaEvidence(id: string) {
 }
 
 /**
- * GET ideas/:id/images (FH-218): screenshots owned by the idea's insights, as 15-minute signed URLs created at read
- * time (ING-27). Forum post images join in P3. One statement plus signing.
+ * GET ideas/:id/images (FH-218): screenshots owned by the idea's insights and by its linked forum posts, as 15-minute
+ * signed URLs created at read time (ING-27). One statement plus signing.
  */
 export async function ideaImages(id: string) {
-  const { rows } = await sql<{ id: string; insight_id: string; name: string | null; size: number }>`
-    SELECT f.id::text, f.owner_id AS insight_id, f.original_name AS name, f.size_bytes AS size
-    FROM core_file f JOIN fh_insight i ON f.owner_id = i.id::text
-    WHERE f.module = 'fh' AND f.owner_kind = 'insight' AND f.deleted_at IS NULL AND i.idea_id = ${id}::uuid
-    ORDER BY f.created_at, f.id LIMIT 60`.execute(getDb());
+  const { rows } = await sql<{ id: string; insight_id: string | null; post_id: string | null; name: string | null; size: number }>`
+    SELECT x.* FROM (
+      SELECT f.id::text, f.owner_id AS insight_id, NULL::text AS post_id, f.original_name AS name, f.size_bytes AS size, f.created_at
+      FROM core_file f JOIN fh_insight i ON f.owner_id = i.id::text
+      WHERE f.module = 'fh' AND f.owner_kind = 'insight' AND f.deleted_at IS NULL AND i.idea_id = ${id}::uuid
+      UNION ALL
+      SELECT f.id::text, NULL, f.owner_id, f.original_name, f.size_bytes, f.created_at
+      FROM core_file f JOIN fh_idea_post ip ON f.owner_id = ip.post_id::text
+      WHERE f.module = 'fh' AND f.owner_kind = 'post' AND f.deleted_at IS NULL AND ip.idea_id = ${id}::uuid) x
+    ORDER BY x.created_at, x.id LIMIT 60`.execute(getDb());
   const urls = await signFileUrls(rows.map((r) => r.id));
   return {
     images: rows.filter((r) => urls[r.id]).map((r) => ({
-      id: r.id, insightId: r.insight_id, name: r.name, size: r.size, url: urls[r.id].url, contentType: urls[r.id].contentType,
+      id: r.id, insightId: r.insight_id, postId: r.post_id, name: r.name, size: r.size, url: urls[r.id].url, contentType: urls[r.id].contentType,
     })),
   };
 }

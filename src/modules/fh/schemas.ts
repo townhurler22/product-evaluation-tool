@@ -98,3 +98,37 @@ export const EraseBody = z.strictObject({
   ids: z.array(Uuid).min(1).max(100),
   confirm: z.literal('ERASE', { message: 'Type ERASE to confirm.' }),
 });
+
+// ── Forum administration and publishing (P3, §7.17, FH-411–413) ─────────────────────────────────────────────
+export const CreateForumBody = z.strictObject({
+  name: reqText(120, 'Name'),
+  prompt: optText(500, 'Submission prompt').optional(),
+});
+export const PatchForumBody = z.strictObject({
+  name: reqText(120, 'Name').optional(),
+  prompt: optText(500, 'Submission prompt').optional(),
+  archived: z.boolean().optional(),
+  main: z.boolean().optional(),
+});
+export const StatusConfigBody = z.strictObject({
+  items: z.array(z.strictObject({
+    statusKey: z.enum(STATUS_KEYS as [string, ...string[]], { message: 'Unknown status.' }),
+    isPublic: z.boolean(),
+    label: optText(60, 'Shown as'),
+    kind: z.enum(['complete', 'closed']).nullable(),
+  })).min(1).max(STATUS_KEYS.length),
+});
+/** Post text is sanitised exactly like a customer post: over-length is rejected, never truncated (FH-412). */
+export const PostTextBody = z.strictObject({
+  title: reqText(200, 'Title'),
+  details: optText(5_000, 'Details').optional().transform((v) => v ?? null),
+});
+export const PublishPreviewBody = z.strictObject({ ids: z.array(Uuid).min(1).max(50) });
+export const PublishBody = z.strictObject({
+  forumId: Uuid,
+  items: z.array(z.strictObject({
+    ideaId: Uuid,
+    title: reqText(200, 'Title'),
+    details: optText(5_000, 'Details').optional().transform((v) => v ?? null),
+  })).min(1).max(50),
+});

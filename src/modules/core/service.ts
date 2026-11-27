@@ -7,9 +7,9 @@ export { enqueue, registerJob, drainJobs } from './jobs';
 export { publish, publishMany, registerChannelRule } from './realtime';
 export { getSettings, type Settings } from './settings';
 export {
-  registerShareResolver, type ShareLinkRow, type ResolvedTarget, type ShareContext,
+  registerShareResolver, newVisitorCookie, type ShareLinkRow, type ResolvedTarget, type ShareContext,
 } from './share/pipeline';
-export { registerShareManagePolicy } from './share/links';
+export { registerShareManagePolicy, registerShareCreateGuard } from './share/links';
 export {
   prepareUpload, insertFileRows, discardUploads, deleteFiles, signFileUrls, registerFileOwnerResolver, type PreparedFile,
 } from './files/service';

@@ -18,6 +18,14 @@ export function registerShareManagePolicy(module: ShareModule, targetKind: 'foru
   policies.set(`${module}:${targetKind}`, p);
 }
 
+type CreateGuard = (targetId: string) => Promise<void>;
+const createGuards = new Map<string, CreateGuard>();
+
+/** Extra checks before a link is created, which may refuse with their own error (FH-1104: archived forums → 409). */
+export function registerShareCreateGuard(module: ShareModule, targetKind: 'forum' | 'board', g: CreateGuard) {
+  createGuards.set(`${module}:${targetKind}`, g);
+}
+
 async function assertCanManage(principal: Principal, module: ShareModule, targetKind: 'forum' | 'board', targetId: string) {
   const policy = policies.get(`${module}:${targetKind}`);
   if (!policy || !(await policy(principal, targetId))) throw new ApiError('not_found', 'Not found.');
@@ -45,6 +53,7 @@ const publicShape = (r: {
 /** Returns the URL exactly once (OD-04: only the hash is stored). */
 export async function createShareLink(principal: Principal, input: CreateShareLink, origin: string) {
   await assertCanManage(principal, input.module, input.targetKind, input.targetId);
+  await createGuards.get(`${input.module}:${input.targetKind}`)?.(input.targetId);
   const caps = Array.from(new Set<Capability>(['VIEW', ...input.capabilities]));
   if (input.targetKind === 'board' && caps.some((c) => c !== 'VIEW')) {
     throw new ApiError('rule_violation', 'Board links can only grant viewing.'); // SEC-09
