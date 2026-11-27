@@ -88,6 +88,8 @@ export function route<S extends z.ZodType | undefined = undefined>(opts: RouteOp
         }
         const { status, body } = toErrorBody(err, ctx.requestId);
         res = NextResponse.json(body, { status });
+        const retryAfter = err instanceof ApiError ? err.details?.retryAfter : undefined;
+        if (status === 429 && typeof retryAfter === 'number') res.headers.set('Retry-After', String(Math.max(1, retryAfter))); // SEC-27
       }
 
       res.headers.set('Server-Timing', timingHeader(ctx));

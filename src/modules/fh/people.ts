@@ -295,7 +295,7 @@ export async function updatePerson(p: Principal, id: string, input: { displayNam
  * `feedbackHub.erasePerson` (SEC-20 step 2) for a set of people, in its own transaction, ≤ 8 statements: delete their
  * votes and recount those posts; delete "people who asked"; clear post authors and insight people (the words stay);
  * drop requesterName / externalUserId / externalAccountId (and attachments of their support insights) from `meta`;
- * collect their support screenshots; recompute affected roll-ups. Vote events arrive with the forum (P3).
+ * collect their support screenshots; clear them from vote events; recompute affected roll-ups.
  */
 export async function erasePeople(personIds: string[]): Promise<{ counts: Record<string, number>; fileIds: string[] }> {
   const ids = uuids(personIds);
@@ -309,7 +309,9 @@ export async function erasePeople(personIds: string[]): Promise<{ counts: Record
     const recount = posts.length ? await sql`
       UPDATE fh_post p SET vote_count = (SELECT count(*) FROM fh_vote v WHERE v.post_id = p.id) WHERE p.id = ANY(${posts}::uuid[])`.execute(tx) : null;
     const links = await sql`DELETE FROM fh_idea_person WHERE person_id = ANY(${ids})`.execute(tx);
-    await sql`UPDATE fh_post SET author_person_id = NULL WHERE author_person_id = ANY(${ids})`.execute(tx);
+    // Their vote events keep the history without the person (P3); post authors are cleared (the words stay).
+    await sql`WITH e AS (UPDATE fh_vote_event SET person_id = NULL WHERE person_id = ANY(${ids}))
+      UPDATE fh_post SET author_person_id = NULL WHERE author_person_id = ANY(${ids})`.execute(tx);
     const ins = await sql`
       UPDATE fh_insight SET person_id = NULL,
         meta = CASE WHEN meta IS NULL THEN NULL

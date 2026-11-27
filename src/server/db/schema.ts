@@ -426,6 +426,24 @@ export interface FhVote {
   created_at: Created;
 }
 
+export interface FhVoteEvent {
+  id: string;
+  post_id: string;
+  action: 'UP' | 'UNDO';
+  person_id: string | null;
+  user_id: string | null;
+  created_at: Created;
+}
+
+export interface FhStatusConfig {
+  status_key: string;
+  is_public: Generated<boolean>;
+  public_label: string | null;
+  public_kind: 'complete' | 'closed' | null;
+  sort_order: Generated<number>;
+  updated_at: Created;
+}
+
 export interface FhSavedView {
   id: string;
   name: string;
@@ -605,6 +623,8 @@ export interface DB {
   fh_post: FhPost;
   fh_idea_post: FhIdeaPost;
   fh_vote: FhVote;
+  fh_vote_event: FhVoteEvent;
+  fh_status_config: FhStatusConfig;
   fh_saved_view: FhSavedView;
   jb_board: JbBoard;
   jb_node: JbNode;

@@ -45,7 +45,7 @@ export async function lookups(p: Principal) {
       releaseTrain: { anchor: s['release_train.anchor'] ?? '2026-01-05', lengthDays: s['release_train.length_days'] ?? 21 },
       planningYearStartMonth: s['planning_year.start_month'] ?? 5,
     },
-    access: { feedbackAdmin: p.isFeedbackAdmin, userId: p.userId },
+    access: { feedbackAdmin: p.isFeedbackAdmin, canDeletePosts: p.canDeletePosts, userId: p.userId },
   };
 }
 
