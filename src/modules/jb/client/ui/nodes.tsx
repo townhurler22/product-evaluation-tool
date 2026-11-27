@@ -8,6 +8,7 @@ import { computeStats, freshness, insideSection, readThresholds, STATUS_FIELD_ID
 import { useBoard, useNodeRec, useReadOnly, useStoreSelect, useUi } from '../context';
 import { childrenOf, descendants } from '../actions';
 import type { FlowNode } from '../flow';
+import { DemandOnCard } from './DemandCard';
 
 export const COLOUR: Record<string, string> = {
   gray: '#6b7280', blue: '#2563eb', violet: '#7c3aed', green: '#15803d', amber: '#b45309', rose: '#be123c',
@@ -109,7 +110,7 @@ const ProductCardNode = memo(function ProductCardNode({ id, selected }: NodeProp
       <div className="jb-card-title">{p.title}</div>
       {p.journeyStage && <div className="jb-quiet">Stage: {p.journeyStage}</div>}
       {p.status && <div className="jb-quiet">Status: {p.status}</div>}
-      {/* P5 extension point: demand band, target date and attention badge (JB-503) render here. */}
+      <DemandOnCard id={id} />{/* JB-503: demand band, target date and attention badge */}
     </Frame>
   );
 });

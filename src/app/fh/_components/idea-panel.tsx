@@ -14,6 +14,7 @@ import { AFFECTS_LOOKUPS, saveField, type EditValue } from '../_lib/edit';
 import { useLiveChannels } from '../_lib/live';
 import { rowStore, useRow } from '../_lib/rows';
 import { orderedFeatures } from './cells';
+import MappedOnBoards from './mapped-on-boards';
 import { CompanyPick } from './cell-editor';
 import { btn, btnPrimary, Chip, Dialog, input, Markdown, money, shortDate, StatusPill } from './ui';
 
@@ -297,7 +298,7 @@ export default function IdeaPanel({ id, lookups, isAdmin, onClose, onOpen, onNav
                 <EditableText label="Public summary" multiline value={summary.data?.publicSummary ?? ''} max={5_000} disabled={!isAdmin || !summary.data}
                   onSave={(v) => save('publicSummary', v || null)} render={(v) => <p className="whitespace-pre-wrap text-sm">{v || <span className="text-[var(--muted)]">None</span>}</p>} />
               </Field>
-              <Field label="Mapped on boards"><p className="text-xs text-[var(--muted)]">Shown once Journey Boards maps Features (P5).</p></Field>
+              <Field label="Mapped on boards"><MappedOnBoards kind="feature" id={row.featureId} /></Field>
             </div>
           </Section>
         </div>

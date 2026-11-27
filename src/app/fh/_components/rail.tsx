@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { api, ApiFailure } from '../_lib/api';
 import { keys, type Feature, type Lookups } from '../_lib/data';
 import { btn, btnPrimary, Dialog, input } from './ui';
+import MappedOnBoards from './mapped-on-boards';
 
 export interface RailState { featureId: string | null; includeSub: boolean; journeyId: string | null }
 
@@ -155,6 +156,12 @@ export default function Rail({ lookups, state, onChange, isAdmin }: {
           );
         })}
       </ul>
+      {(state.featureId || state.journeyId) && (
+        <section aria-label="Mapped on boards" className="border-t border-[var(--border)] px-2 py-2">
+          <h2 className="pb-1 text-sm font-semibold">Mapped on boards</h2>
+          {state.featureId ? <MappedOnBoards kind="feature" id={state.featureId} /> : <MappedOnBoards kind="journey" id={state.journeyId} />}
+        </section>
+      )}
       {editing && lookups && (
         <FeatureDialog features={lookups.features} editing={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); refresh(); }} />
       )}

@@ -21,6 +21,8 @@ export interface SyncDeps {
   onStatus?: (s: SyncStatus) => void;
   onNotice?: (message: string) => void;
   persist?: (snapshot: ReturnType<BoardStore['outboxSnapshot']>) => void;
+  /** P5 (D-27): the board's demand revision, read from every changes poll. */
+  onDemandRev?: (rev: number) => void;
   setTimer?: (fn: () => void, ms: number) => unknown;
   clearTimer?: (t: unknown) => void;
 }
@@ -130,6 +132,7 @@ export class BoardSync {
           if (res.status === 404) { this.store.setReadOnly(true); this.setStatus({ kind: 'rights-lost', waiting: this.store.unsentCount }); return; }
           if (!res.ok) return;
           const body = await res.json();
+          if (typeof body.demandRev === 'number') this.d.onDemandRev?.(body.demandRev);
           if (body.resync) { this.store.resync(await this.d.loadContent()); return; }
           for (const b of body.batches as RemoteBatch[]) if (this.store.applyBatch(b) === 'gap') break;
           if (!body.more) return;

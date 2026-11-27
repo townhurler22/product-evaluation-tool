@@ -92,3 +92,28 @@
 .jb-cursor { position: absolute; pointer-events: none; display: flex; gap: 2px; align-items: flex-start; }
 .jb-cursor span { color: #fff; font-size: 0.7rem; padding: 0 4px; border-radius: 3px; }
 @media (max-width: 900px) { .jb-panel { position: absolute; right: 0; top: 0; bottom: 0; z-index: 5; width: min(360px, 100%); } .jb-sidebar { width: 260px; } }
+
+/* P5 journey mapping and demand (JB-503, INT-30, INT-36, INT-37). */
+.jb-demand-band { margin: 6px -10px -8px; padding: 2px 10px; border-radius: 0 0 6px 6px; display: flex; justify-content: flex-end; }
+.jb-demand-count-wrap { position: relative; }
+.jb-demand-count { min-width: 28px; border: 0; border-radius: 4px; background: rgb(255 255 255 / 0.85); color: #111; font-weight: 700; font-size: 0.75rem; cursor: help; }
+.jb-breakdown { position: absolute; bottom: 120%; right: 0; z-index: 20; width: 220px; display: flex; flex-direction: column; gap: 2px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--fg); font-size: 0.75rem; box-shadow: 0 2px 8px rgb(0 0 0 / 0.2); }
+.jb-target { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+.jb-attention { margin-top: 4px; padding: 1px 6px; border-radius: 10px; background: #f59e0b; color: #111; font-size: 0.7rem; font-weight: 700; display: inline-block; }
+.jb-attention-text { color: #b45309; font-size: 0.85rem; }
+.jb-warn { color: #b45309; }
+.jb-fh { display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; }
+.jb-fh p { margin: 0; }
+.jb-fh-list { display: flex; flex-direction: column; gap: 6px; padding: 0; list-style: none; }
+.jb-fh-list li { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.jb-fh-search { display: flex; flex-direction: column; gap: 2px; }
+.jb-fh-search input { background: transparent; color: inherit; border: 1px solid var(--border); border-radius: 4px; padding: 4px 6px; font: inherit; }
+.jb-fh-search ul { list-style: none; padding: 0; margin: 0; }
+.jb-ideas ul { margin: 4px 0; padding-left: 16px; }
+.jb-legend { position: absolute; left: 12px; bottom: 12px; z-index: 5; display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); font-size: 0.8rem; }
+.jb-legend-swatches, .jb-legend-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.jb-legend-item { display: inline-flex; gap: 4px; align-items: center; }
+.jb-legend button { min-height: 24px; padding: 1px 8px; border: 1px solid var(--border); border-radius: 6px; background: transparent; color: inherit; }
+.jb-legend button[aria-pressed="true"] { background: var(--accent); color: var(--bg); }
+.jb-crumb { font-size: 0.85rem; color: var(--muted); }
+.jb-crumb a { text-decoration: underline; }

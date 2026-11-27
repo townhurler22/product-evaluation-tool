@@ -11,6 +11,7 @@ import { BoardLive, stableColour, type Cursor, type PresenceUser } from '../live
 import { openOutbox, type OutboxPersistence } from '../persist';
 import { BoardStore, type ContentIn, type RemoteBatch } from '../store';
 import { BoardSync, type SyncStatus } from '../sync';
+import { DemandStore } from '../demand';
 import { UiStore } from '../ui-store';
 import Canvas, { type Pin } from './Canvas';
 import Outline from './Outline';
@@ -18,6 +19,8 @@ import Panel, { EdgePanel } from './Panel';
 import { FieldsPanel, FiltersPanel, HealthPanel, useDimming } from './Sidebars';
 import { CommentsPanel, SharePanel, type Thread } from './Social';
 import Toolbar, { type SidePanel } from './Toolbar';
+import DemandLegend from './DemandLegend';
+import './FeedbackHubPanel'; // P5: registers the Product card panel's Feedback Hub section (JB-502)
 
 const newId = () => crypto.randomUUID().replace(/-/g, '');
 
@@ -70,6 +73,13 @@ function Board({ boardId, loaded, deepNodeId }: { boardId: string; loaded: Loade
   const [metas, setMetas] = useState(loaded.metas);
   const store = useMemo(() => { const s = new BoardStore(newId(), !loaded.meta.rights.canEdit); s.load(loaded.content); return s; }, [loaded]);
   const ui = useMemo(() => new UiStore(), []);
+  // P5 demand overlay (§9.7): one request per board in view, refetched by demand revision (D-27, PERF-31).
+  const demand = useMemo(() => new DemandStore({
+    boardId, userId: loaded.me.userId, fetch: (u, i) => fetch(u, i), onChange: (v) => ui.set({ demand: v }),
+    storage: typeof window === 'undefined' ? null : (() => { try { return window.localStorage; } catch { return null; } })(),
+  }), [boardId, loaded.me.userId, ui]);
+  const hasProducts = useStoreSelect((s) => { for (const n of s.view.nodes.values()) if (n.kind === 'product-card') return true; return false; });
+  useEffect(() => { demand.setEnabled(hasProducts); }, [demand, hasProducts]);
   const rf = useReactFlow();
   const [status, setStatus] = useState<SyncStatus>({ kind: 'saved' });
   const [notice, setNotice] = useState<string | null>(() => (deepNodeId && !loaded.content.nodes.some((n) => n.id === deepNodeId) ? 'That card no longer exists' : null));
@@ -94,9 +104,10 @@ function Board({ boardId, loaded, deepNodeId }: { boardId: string; loaded: Loade
       .then((b: { urls: Record<string, string> }) => setImages((cur) => ({ ...cur, ...b.urls })));
   }, [boardId]);
 
+  const flush = useCallback(async () => { if (store.unsentCount) await syncRef.current?.flush(); }, [store]);
   const ctx: BoardCtx = useMemo(() => ({
-    store, ui, boardId, mode: 'collab', me: loaded.me, announce, requestImages, imageUrl: (id: string) => images[id],
-  }), [store, ui, boardId, loaded.me, announce, requestImages, images]);
+    store, ui, boardId, mode: 'collab', me: loaded.me, announce, requestImages, imageUrl: (id: string) => images[id], demand, flush,
+  }), [store, ui, boardId, loaded.me, announce, requestImages, images, demand, flush]);
 
   const refreshMeta = useCallback(async () => {
     const r = await fetch('/api/jb/boards');
@@ -118,6 +129,7 @@ function Board({ boardId, loaded, deepNodeId }: { boardId: string; loaded: Loade
       loadContent: async () => (await (await fetch(`/api/jb/boards/${boardId}/content`)).json()).content,
       onStatus: setStatus, onNotice: (m) => { setNotice(m); announce(m); },
       persist: (s) => box.persist?.save(s),
+      onDemandRev: (rev) => demand.onRev(rev),
     });
     syncRef.current = sync;
     store.setHandlers({ onRemoteDelete: (id) => { if (ui.state.panelNodeId === id) ui.set({ deletedNotice: 'This card was deleted by a collaborator.' }); } });
@@ -146,6 +158,7 @@ function Board({ boardId, loaded, deepNodeId }: { boardId: string; loaded: Loade
       onPresence: (users) => setPresence(users.filter((u) => u.userId !== loaded.me.userId)),
       onCursor: (c) => setCursors((cs) => [...cs.filter((x) => x.userId !== c.userId), c]),
       onMode: (m) => ui.set({ live: m }),
+      onDemand: (rev) => { if (typeof rev === 'number') demand.onRev(rev); else void demand.refresh(); },
     });
     liveRef.current = live;
     void live.start();
@@ -159,7 +172,7 @@ function Board({ boardId, loaded, deepNodeId }: { boardId: string; loaded: Loade
       box.closed = true; sync.flushOnHide(); sync.dispose(); live.stop(); clearInterval(sweep);
       window.removeEventListener('pagehide', hide); window.removeEventListener('online', online);
     };
-  }, [store, ui, boardId, loaded.me, announce, refreshMeta]);
+  }, [store, ui, boardId, loaded.me, announce, refreshMeta, demand]);
 
   // Comments load after first paint (PERF-02).
   useEffect(() => {
@@ -209,6 +222,7 @@ function Board({ boardId, loaded, deepNodeId }: { boardId: string; loaded: Loade
               {tabs.map((m) => <Link key={m.id} href={`/jb/${m.id}`} aria-current={m.id === boardId ? 'page' : undefined} className="jb-tab">{m.name}</Link>)}
               <Link href="/jb" className="jb-tab">All boards</Link>
             </nav>
+            {meta.journeyOf && <JourneyCrumb parent={metas.find((m) => m.id === meta.journeyOf!.boardId)} journeyOf={meta.journeyOf} />}
             <BoardName canEdit={meta.rights.canEdit} />
             <div className="jb-presence" aria-label="People on this board">
               {presence.map((p) => <span key={p.userId} className="jb-avatar" style={{ background: p.colour }} title={p.name}>{p.name.slice(0, 1).toUpperCase()}</span>)}
@@ -235,6 +249,7 @@ function Board({ boardId, loaded, deepNodeId }: { boardId: string; loaded: Loade
             onPointer={(x, y) => liveRef.current?.sendCursor(x, y)}
             onViewport={meta.rights.canEdit ? (v) => void fetch(`/api/jb/boards/${boardId}/viewport`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(v) }) : undefined}
             initialViewport={loaded.content.viewport} presentation={present} />
+          {hasProducts && <DemandLegend />}
           {!present && side && (
             <div className="jb-sidebar">
               {side === 'outline' && <Outline />}
@@ -250,6 +265,17 @@ function Board({ boardId, loaded, deepNodeId }: { boardId: string; loaded: Loade
         <div className="jb-sr" aria-live="polite" role="status">{announcement}</div>
       </div>
     </BoardProvider>
+  );
+}
+
+/** INT-08: a journey shows parent board › card; the deep link says "That card no longer exists" if it was deleted. */
+function JourneyCrumb({ parent, journeyOf }: { parent: BoardMeta | undefined; journeyOf: { boardId: string; nodeId: string } }) {
+  return (
+    <nav aria-label="Breadcrumb" className="jb-crumb">
+      <Link href={`/jb/${journeyOf.boardId}`}>{parent?.name ?? 'Parent board'}</Link>
+      <span aria-hidden="true"> › </span>
+      <Link href={`/jb/${journeyOf.boardId}?node=${encodeURIComponent(journeyOf.nodeId)}`}>Product card</Link>
+    </nav>
   );
 }
 

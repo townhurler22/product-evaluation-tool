@@ -17,6 +17,8 @@ export interface LiveHandlers {
   onPresence: (users: PresenceUser[]) => void;
   onCursor: (c: Cursor) => void;
   onMode: (mode: 'realtime' | 'polling' | 'offline') => void;
+  /** P5 (PERF-31): `demand.changed {demandRev}`; refetch the overlay. */
+  onDemand?: (demandRev: number | undefined) => void;
 }
 
 const COLOURS = ['#2563eb', '#db2777', '#059669', '#d97706', '#7c3aed', '#0891b2', '#dc2626', '#4d7c0f'];
@@ -62,6 +64,7 @@ export class BoardLive {
       .on('broadcast', { event: 'comment.upserted' }, ({ payload }) => this.h.onComment(payload, false))
       .on('broadcast', { event: 'comment.removed' }, ({ payload }) => this.h.onComment(payload, true))
       .on('broadcast', { event: 'board.meta' }, () => this.h.onMeta())
+      .on('broadcast', { event: 'demand.changed' }, ({ payload }) => this.h.onDemand?.((payload as { demandRev?: number }).demandRev))
       .on('broadcast', { event: 'board.locked' }, ({ payload }) => this.h.onLocked(String((payload as { reason?: string }).reason ?? '')))
       .on('broadcast', { event: 'cursor' }, ({ payload }) => this.h.onCursor({ ...(payload as Cursor), at: Date.now() }))
       .on('presence', { event: 'sync' }, () => {

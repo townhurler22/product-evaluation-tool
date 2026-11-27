@@ -4,6 +4,7 @@
 import { createContext, useContext, useSyncExternalStore } from 'react';
 import type { BoardStore } from './store';
 import type { UiStore, UiState } from './ui-store';
+import type { DemandStore } from './demand';
 
 export interface BoardCtx {
   store: BoardStore;
@@ -15,6 +16,10 @@ export interface BoardCtx {
   imageUrl: (imageId: string) => string | undefined;
   requestImages: (ids: string[]) => void;
   announce: (message: string) => void;
+  /** P5: the demand overlay store (collaborative mode only). */
+  demand?: DemandStore;
+  /** P5 (INT-45): send the outbox now, so a new card exists on the server before its panel reads it. */
+  flush?: () => Promise<void>;
 }
 
 const Ctx = createContext<BoardCtx | null>(null);

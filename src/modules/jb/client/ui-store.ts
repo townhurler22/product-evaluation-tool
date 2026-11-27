@@ -1,6 +1,7 @@
 // Transient, per-user UI state (PERF-21): selection for the panel, dimmed and highlighted ids, filters,
 // isolate mode, comments. Never persisted to the board. Read through per-node selectors.
 import { emptyFilters, type Filters } from '../derive';
+import type { DemandView } from './demand';
 
 type Listener = () => void;
 
@@ -15,12 +16,14 @@ export interface UiState {
   isolate: { label: string; ids: string[]; index: number } | null;
   commentCounts: ReadonlyMap<string, number>;
   live: 'realtime' | 'polling' | 'offline';
+  /** P5: the demand overlay for this board (null until loaded or without Product cards). */
+  demand: DemandView | null;
 }
 
 export class UiStore {
   state: UiState = {
     panelNodeId: null, panelEdgeId: null, selection: [], deletedNotice: null, dimmed: new Set(), highlighted: null, filters: emptyFilters(),
-    isolate: null, commentCounts: new Map(), live: 'polling',
+    isolate: null, commentCounts: new Map(), live: 'polling', demand: null,
   };
   private listeners = new Set<Listener>();
   subscribe = (l: Listener) => { this.listeners.add(l); return () => { this.listeners.delete(l); }; };

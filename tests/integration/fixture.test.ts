@@ -33,7 +33,7 @@ describe('fixture (§13.4)', () => {
     const b = await freshDb(); await seedFixture(b.pg, 0.01);
     const q = 'SELECT id, name, domain, arr::text FROM core_company ORDER BY id';
     expect((await a.pg.query(q)).rows).toEqual((await b.pg.query(q)).rows);
-  });
+  }, 120_000); // two fixtures; slow when the P5 fixture tests run alongside
 
   it('demo seed is idempotent and creates the sandbox user', async () => {
     const { pg } = await freshDb();
