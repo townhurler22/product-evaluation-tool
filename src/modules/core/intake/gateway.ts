@@ -4,7 +4,7 @@ import { sql } from 'kysely';
 import { getDb } from '@/server/db';
 import { ApiError } from '@/server/http/errors';
 import { clientIp, hashIp, newId } from '../util';
-import { maxBodyCap, moduleRoutes, type IntakeClient } from './registry';
+import { maxBodyCap, moduleRoutes, type IntakeClient, type IntakeHandlerResult } from './registry';
 import {
   deploymentEnvironment, deriveSecret, EMPTY_BODY_SHA256, masterKey, sha256Hex, sign, signaturesMatch, timestampFresh,
 } from './signing';
@@ -260,26 +260,37 @@ export async function runIntake(req: Request, module: string, routeName: string)
     return err(400, 'body_invalid', 'The body does not match the schema.', {}, { issues });
   }
 
-  // 17. Handler + receipt in one transaction (ING-12).
+  // 17. Handler + receipt in one transaction (ING-12). Optional preparation first (ING-25: files before rows).
   const receiptId = newId();
   const responseBody = JSON.stringify({ receiptId });
   const client: IntakeClient = { clientId: keyRow.client_id, clientName: keyRow.client_name, keyId: keyRow.key_id, module };
+  let prepared: unknown = undefined;
+  let result: IntakeHandlerResult | void = undefined;
+  const discard = async () => {
+    if (prepared === undefined || !route.discard) return;
+    try { await route.discard(prepared); } catch (e) {
+      console.error(JSON.stringify({ level: 'error', msg: 'intake discard failed', route: routeName, err: String(e) }));
+    }
+  };
   try {
+    if (route.prepare) prepared = await route.prepare({ client, requestKey, body: parsed.data });
     const won = await getDb().transaction().execute(async (tx) => {
       const ins = await sql<{ id: string }>`
         INSERT INTO ing_receipt (id, client_id, request_key, body_sha256, status, content_type, response_body)
         VALUES (${receiptId}, ${client.clientId}, ${requestKey}, ${bodySha}, 202, 'application/json', ${responseBody})
         ON CONFLICT (client_id, request_key) DO NOTHING RETURNING id`.execute(tx);
       if (!ins.rows.length) return false; // a concurrent identical request committed first
-      await route.handler({ tx, client, requestKey, receiptId, body: parsed.data });
+      result = await route.handler({ tx, client, requestKey, receiptId, body: parsed.data, prepared });
       return true;
     });
     if (!won) {
+      await discard();
       const again = await checkReceipt(keyRow.client_id, requestKey, bodySha);
       await log({ ...base, ...again!.log });
       return again!.answer;
     }
   } catch (e) {
+    await discard();
     if (e instanceof ApiError) {
       await log({ ...base, outcome: 'rejected', reason: e.code, status: e.status });
       return err(e.status, e.code, e.message, {}, e.details);
@@ -288,7 +299,14 @@ export async function runIntake(req: Request, module: string, routeName: string)
     console.error(JSON.stringify({ level: 'error', msg: 'intake handler failed', route: routeName, err: String(e) }));
     return err(500, 'internal', 'Something went wrong');
   }
-  await log({ ...base, outcome: 'accepted', reason: 'created', status: 202, receiptId });
+  const done = result as IntakeHandlerResult | void;
+  if (done?.duplicate) await discard();
+  await log({ ...base, outcome: 'accepted', reason: done?.duplicate ? 'duplicate' : 'created', status: 202, receiptId });
+  if (done?.afterCommit) {
+    try { await done.afterCommit(); } catch (e) {
+      console.error(JSON.stringify({ level: 'error', msg: 'intake after-commit failed', route: routeName, err: String(e) }));
+    }
+  }
   return { status: 202, body: { receiptId }, headers: { 'x-ingest-receipt': receiptId } };
 }
 

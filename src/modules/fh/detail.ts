@@ -2,7 +2,8 @@
 import { sql } from 'kysely';
 import { getDb } from '@/server/db';
 import { ApiError } from '@/server/http/errors';
-import { newId, type Principal } from '@/modules/core/service';
+import { newId, signFileUrls, type Principal } from '@/modules/core/service';
+import { readIntakeMeta } from './intake-meta';
 import { publishDetail } from './live';
 import { lockIdeas } from './store';
 
@@ -78,19 +79,27 @@ export async function ideaEvidence(id: string) {
     FROM ev JOIN core_person p ON p.id = ev.person_id LEFT JOIN core_company c ON c.id = p.company_id
     GROUP BY p.id, p.display_name, c.name ORDER BY name LIMIT 500`.execute(db);
   return {
-    insights: insights.rows.map((r) => ({ ...r, createdAt: iso(r.createdAt), meta: readMeta(r.meta) })),
+    insights: insights.rows.map((r) => ({ ...r, createdAt: iso(r.createdAt), meta: readIntakeMeta(r.meta) })),
     countedPeople: counted.rows,
   };
 }
 
-/** SEC-16: stored JSON is read defensively; wrong shapes are dropped. */
-function readMeta(meta: unknown): Record<string, string | number> | null {
-  if (!meta || typeof meta !== 'object' || Array.isArray(meta)) return null;
-  const out: Record<string, string | number> = {};
-  for (const [k, v] of Object.entries(meta)) {
-    if ((typeof v === 'string' && v.length <= 2000) || typeof v === 'number') out[k] = v;
-  }
-  return out;
+/**
+ * GET ideas/:id/images (FH-218): screenshots owned by the idea's insights, as 15-minute signed URLs created at read
+ * time (ING-27). Forum post images join in P3. One statement plus signing.
+ */
+export async function ideaImages(id: string) {
+  const { rows } = await sql<{ id: string; insight_id: string; name: string | null; size: number }>`
+    SELECT f.id::text, f.owner_id AS insight_id, f.original_name AS name, f.size_bytes AS size
+    FROM core_file f JOIN fh_insight i ON f.owner_id = i.id::text
+    WHERE f.module = 'fh' AND f.owner_kind = 'insight' AND f.deleted_at IS NULL AND i.idea_id = ${id}::uuid
+    ORDER BY f.created_at, f.id LIMIT 60`.execute(getDb());
+  const urls = await signFileUrls(rows.map((r) => r.id));
+  return {
+    images: rows.filter((r) => urls[r.id]).map((r) => ({
+      id: r.id, insightId: r.insight_id, name: r.name, size: r.size, url: urls[r.id].url, contentType: urls[r.id].contentType,
+    })),
+  };
 }
 
 /** GET ideas/:id/activity: status changes and field events interleaved, newest 50 (FH-220). One statement. */

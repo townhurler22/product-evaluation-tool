@@ -19,16 +19,30 @@ export interface IntakeHandlerArgs<T> {
   body: T;
 }
 
-export interface IntakeRoute<S extends z.ZodType = z.ZodType> {
+export interface IntakeHandlerResult {
+  /** True when the handler wrote nothing new (ING-16 duplicate): prepared work is discarded after commit. */
+  duplicate?: boolean;
+  /** Runs after the transaction commits (publish, drain jobs). Failures are logged, never change the answer. */
+  afterCommit?: () => Promise<void> | void;
+}
+
+export interface IntakeRoute<S extends z.ZodType = z.ZodType, P = unknown> {
   bodyCap: number;
   schema: S;
+  /**
+   * Optional work before the transaction, after the body validated (ING-25: files are stored before rows).
+   * Throw ApiError to refuse; no receipt is written.
+   */
+  prepare?: (args: { client: IntakeClient; requestKey: string; body: z.infer<S> }) => Promise<P>;
+  /** Undoes `prepare` when the transaction fails, loses a race, or the handler reports a duplicate (ING-25). */
+  discard?: (prepared: P) => Promise<void>;
   /** Runs inside the receipt transaction (ING-12). Throw ApiError to refuse; nothing is kept. */
-  handler: (args: IntakeHandlerArgs<z.infer<S>>) => Promise<void>;
+  handler: (args: IntakeHandlerArgs<z.infer<S>> & { prepared: P }) => Promise<void | IntakeHandlerResult>;
 }
 
 const modules = new Map<string, Map<string, IntakeRoute>>();
 
-export function registerIntakeRoute<S extends z.ZodType>(module: string, name: string, route: IntakeRoute<S>) {
+export function registerIntakeRoute<S extends z.ZodType, P = unknown>(module: string, name: string, route: IntakeRoute<S, P>) {
   if (!route.bodyCap || route.bodyCap <= 0) throw new Error(`intake route ${module}/${name} needs a body cap`);
   if (!route.schema) throw new Error(`intake route ${module}/${name} needs a schema`);
   if (name.startsWith('_')) throw new Error('route names starting with _ are reserved');

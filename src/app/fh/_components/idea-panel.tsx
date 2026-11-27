@@ -8,6 +8,7 @@ import {
   allowedTargets, IDEA_TYPES, prioValue, SOURCE_LABEL, statusKeyOf, statusLabel, TYPE_LABEL, INSIGHT_PRIORITIES, type View,
 } from '@/modules/fh/domain';
 import type { IdeaRow } from '@/modules/fh/rows';
+import { CALL_TYPE_LABEL, type IntakeMeta } from '@/modules/fh/intake-meta';
 import { api, ApiFailure } from '../_lib/api';
 import { keys, removeFromLists, type Lookups } from '../_lib/data';
 import { AFFECTS_LOOKUPS, saveField, type EditValue } from '../_lib/edit';
@@ -24,7 +25,7 @@ interface Summary {
   companies: { id: string; name: string; arr: string | null }[]; people: { id: string; name: string; companyName: string | null }[];
   posts: { id: string; title: string; voteCount: number }[]; createdByName: string | null;
 }
-interface Insight { id: string; value: string; source: string; priority: string; url: string | null; createdAt: string; companyName: string | null; personName: string | null; verifiedBy: string | null; staffName: string | null }
+interface Insight { id: string; value: string; source: string; priority: string; url: string | null; createdAt: string; companyName: string | null; personName: string | null; verifiedBy: string | null; staffName: string | null; meta: IntakeMeta | null }
 interface Activity { id: string; kind: 'status' | 'field'; field: string | null; from: string | null; to: string | null; comment: string | null; at: string; actor: string | null }
 interface Comment { id: string; body: string | null; authorId: string | null; authorName: string | null; createdAt: string; editedAt: string | null; deleted: boolean }
 
@@ -41,6 +42,7 @@ export function activityText(a: Activity): string {
     return `Status: ${from} → ${statusLabel(a.to as never)}${a.comment ? `. ${a.comment}` : ''}`;
   }
   if (a.field === 'merge') return a.to ?? 'Merged';
+  if (a.field === 'created') return a.to ?? 'Created';
   if (a.field === 'description') return 'Description edited';
   if (a.field === 'publicSummary') return 'Public summary edited';
   const label = FIELD_LABEL[a.field ?? ''] ?? a.field ?? 'Field';
@@ -211,10 +213,11 @@ export default function IdeaPanel({ id, lookups, isAdmin, onClose, onOpen, onNav
                 <li key={i.id} className="rounded-md border border-[var(--border)] p-2 text-sm">
                   {i.value === summary.data?.description ? <p className="italic text-[var(--muted)]">Same as the description.</p> : <p className="whitespace-pre-wrap break-words">{i.value}</p>}
                   <p className="mt-1 text-xs text-[var(--muted)]">
-                    {[i.companyName, i.personName ? `${i.personName}${i.verifiedBy ? ` (Verified by ${i.verifiedBy.replace(/^ingest:/, '')})` : ''}` : i.staffName,
+                    {[i.companyName, i.personName ? `${i.personName}${i.verifiedBy ? ` (Verified by ${i.verifiedBy.replace(/^ingest:/, '')})` : ''}` : i.staffName ?? (i.meta?.requesterName ? `${i.meta.requesterName} (not on file)` : null),
                       `${i.priority.charAt(0)}${i.priority.slice(1).toLowerCase()} priority`, SOURCE_LABEL[i.source as keyof typeof SOURCE_LABEL] ?? i.source, shortDate(i.createdAt)].filter(Boolean).join(' · ')}
-                    {i.url && <> · <a href={i.url} target="_blank" rel="noopener noreferrer nofollow ugc" className="underline">Link</a></>}
+                    {i.url && <> · <a href={i.url} target="_blank" rel="noopener noreferrer nofollow ugc" className="underline">{i.meta?.call ? 'Call record' : 'Link'}</a></>}
                   </p>
+                  <IntakeEvidence meta={i.meta} />
                   {isAdmin && <button className="mt-1 text-xs text-[var(--danger)] underline" onClick={async () => {
                     if (!window.confirm('Delete this insight?')) return;
                     const r = await api<{ row: IdeaRow | null }>(`/api/fh/insights/${i.id}`, { method: 'DELETE' });
@@ -225,6 +228,8 @@ export default function IdeaPanel({ id, lookups, isAdmin, onClose, onOpen, onNav
               ))}
             </ul>
           </Section>
+
+          {(row.sources.includes('SUPPORT_BUTTON') || row.sources.includes('FORUM')) && <Screenshots ideaId={id} />}
 
           <Section title="Themes">
             <ThemeEditor row={row} lookups={lookups} isAdmin={isAdmin} onSave={(ids) => save('themes', ids)} />
@@ -612,6 +617,62 @@ function ActivitySection({ ideaId, version }: { ideaId: string; version: number 
         const r = await api<{ items: Activity[]; nextBefore: string | null }>(`/api/fh/ideas/${ideaId}/activity?before=${encodeURIComponent(before)}`);
         setMore((m) => [...m, ...r.items]); setBefore(r.nextBefore);
       }}>Show more</button>}
+    </section>
+  );
+}
+
+/** FH-214: intake evidence from the insight's meta (read defensively on the server, ING-27). */
+function IntakeEvidence({ meta }: { meta: IntakeMeta | null }) {
+  if (!meta) return null;
+  const c = meta.call, ctx = meta.context;
+  return (
+    <div className="mt-1 space-y-0.5 text-xs text-[var(--muted)]">
+      {c && <p>{[CALL_TYPE_LABEL[c.type], c.title, c.date ? shortDate(c.date) : null, c.timeInCall ? `at ${c.timeInCall}` : null].filter(Boolean).join(' · ')}</p>}
+      {meta.quoteVerified === false && <p className="font-semibold text-[var(--danger)]">Quote not found in transcript</p>}
+      {ctx && (ctx.module || ctx.page || ctx.appVersion) && (
+        <p>{[ctx.module && `Module: ${ctx.module}`, ctx.page && `Page: ${ctx.page}`, ctx.appVersion && `Version ${ctx.appVersion}`].filter(Boolean).join(' · ')}</p>
+      )}
+      {!!meta.attachments?.length && <p>{meta.attachments.length} screenshot{meta.attachments.length === 1 ? '' : 's'} (see Screenshots)</p>}
+    </div>
+  );
+}
+
+/** FH-218: screenshots load only when the section is expanded; thumbnails open full size in a dialog. */
+function Screenshots({ ideaId }: { ideaId: string }) {
+  const [open, setOpen] = useState(false);
+  const [viewing, setViewing] = useState<{ url: string; name: string | null } | null>(null);
+  const images = useQuery({
+    queryKey: keys.detail('images', ideaId), enabled: open, staleTime: 10 * 60_000, // signed URLs last 15 minutes
+    queryFn: () => api<{ images: { id: string; url: string; name: string | null }[] }>(`/api/fh/ideas/${ideaId}/images`).then((r) => r.images),
+  });
+  return (
+    <section className="space-y-2">
+      <h3 className="text-sm font-semibold">
+        <button type="button" aria-expanded={open} className="underline-offset-2 hover:underline" onClick={() => setOpen((o) => !o)}>
+          Screenshots{images.data ? ` (${images.data.length})` : ''} {open ? '▾' : '▸'}
+        </button>
+      </h3>
+      {open && images.isLoading && <p className="text-sm text-[var(--muted)]">Loading…</p>}
+      {open && images.isError && <p className="text-sm text-[var(--danger)]">Screenshots could not be loaded.</p>}
+      {open && images.data?.length === 0 && <p className="text-sm text-[var(--muted)]">None.</p>}
+      {open && !!images.data?.length && (
+        <ul className="flex flex-wrap gap-2">
+          {images.data.map((img) => (
+            <li key={img.id}>
+              <button type="button" className="block rounded border border-[var(--border)]" onClick={() => setViewing(img)} aria-label={`View ${img.name ?? 'screenshot'} full size`}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={img.url} alt={img.name ?? 'Screenshot'} className="h-20 w-28 object-cover" loading="lazy" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {viewing && (
+        <Dialog title={viewing.name ?? 'Screenshot'} onClose={() => setViewing(null)} wide>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={viewing.url} alt={viewing.name ?? 'Screenshot'} className="max-h-[75vh] w-full object-contain" />
+        </Dialog>
+      )}
     </section>
   );
 }

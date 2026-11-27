@@ -3,6 +3,7 @@ import { sql } from 'kysely';
 import { getDb } from '@/server/db';
 import { sweepFiles } from './files/service';
 import { registerJob } from './jobs';
+import './erasure'; // registers core.erasure (SEC-20)
 
 registerJob('core.files.sweep', async () => { await sweepFiles(); });
 

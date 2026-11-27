@@ -15,3 +15,9 @@ export {
 } from './files/service';
 // §11.4 link service (ARC-06): the only way Feedback Hub and Journey Boards read or write core_link.
 export * as links from './links';
+export { registerIntakeRoute, type IntakeClient, type IntakeHandlerResult } from './intake/registry';
+export {
+  resolveForIntake, normaliseDomain, emailDomain, companyNameKey, type IntakeResolution,
+} from './people';
+export { registerErasureParticipant, runErasure, type ErasureOutcome } from './erasure';
+export { normaliseEmail } from './util';

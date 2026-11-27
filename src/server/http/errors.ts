@@ -3,12 +3,15 @@
 export type ErrorCode =
   | 'validation' | 'unauthenticated' | 'forbidden' | 'not_found' | 'conflict' | 'gone'
   | 'too_large' | 'unsupported_type' | 'rule_violation' | 'client_outdated' | 'rate_limited'
-  | 'unavailable' | 'files_unavailable' | 'internal';
+  | 'unavailable' | 'files_unavailable' | 'internal'
+  // Intake answers (ING-10, ING-20)
+  | 'body_invalid' | 'file_type_mismatch' | 'file_type_not_allowed';
 
 const STATUS: Record<ErrorCode, number> = {
   validation: 400, unauthenticated: 401, forbidden: 403, not_found: 404, conflict: 409, gone: 410,
   too_large: 413, unsupported_type: 415, rule_violation: 422, client_outdated: 426, rate_limited: 429,
   unavailable: 503, files_unavailable: 503, internal: 500,
+  body_invalid: 400, file_type_mismatch: 415, file_type_not_allowed: 415,
 };
 
 export class ApiError extends Error {

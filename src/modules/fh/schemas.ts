@@ -77,3 +77,24 @@ export const BulkStatusBody = z.strictObject({ ids: BulkIds, status: StatusKeySc
 export const BulkThemesBody = z.strictObject({ ids: BulkIds, themeId: Uuid, action: z.enum(['add', 'remove']) });
 export const AssignMilestoneBody = z.strictObject({ ids: BulkIds, milestoneId: Uuid.nullable() });
 export const CommentBody = z.strictObject({ body: reqText(2_000, 'Comment') });
+
+// ── companies and people (§7.14) ──
+const Arr = z.union([z.string().max(40), z.number()]).nullable();
+const Aliases = z.array(reqText(200, 'Alias')).max(20);
+export const CreateCompanyBody = z.strictObject({
+  name: reqText(200, 'Name'), domain: z.string().max(300).nullish(), arr: Arr.optional(), aliases: Aliases.optional(),
+});
+export const PatchCompanyBody = z.strictObject({
+  name: reqText(200, 'Name').optional(), domain: z.string().max(300).nullable().optional(), arr: Arr.optional(), aliases: Aliases.optional(),
+});
+export const DeleteCompaniesBody = z.strictObject({ ids: z.array(Uuid).min(1).max(100) });
+export const CreatePersonBody = z.strictObject({
+  displayName: optText(200, 'Name').optional(),
+  email: z.string().trim().max(320).regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Enter a valid email.').nullish(),
+  companyId: Uuid.nullish(),
+});
+export const PatchPersonBody = z.strictObject({ displayName: optText(200, 'Name').optional(), companyId: Uuid.nullable().optional() });
+export const EraseBody = z.strictObject({
+  ids: z.array(Uuid).min(1).max(100),
+  confirm: z.literal('ERASE', { message: 'Type ERASE to confirm.' }),
+});

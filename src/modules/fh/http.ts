@@ -24,3 +24,6 @@ export function idParam(params: Record<string, string>, name = 'id'): string {
   if (!isUuid(v)) throw new ApiError('not_found', 'Not found.');
   return v;
 }
+
+/** `?offset=` for server-paginated management lists. */
+export const offsetParam = (v: string | null) => Math.max(0, Math.min(1_000_000, Number.parseInt(v ?? '0', 10) || 0));

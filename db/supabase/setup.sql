@@ -53,3 +53,9 @@ SELECT cron.schedule('pet-logs-prune', '0 3 1 * *',
 -- Feedback Hub nightly reconciliation of roll-ups, Feature demand and the closure table (§4.11, INV-18). P1.
 SELECT cron.schedule('pet-fh-reconcile', '45 2 * * *',
   $cron$INSERT INTO core_job (id, kind) VALUES (gen_random_uuid(), 'fh.reconcile')$cron$);
+-- Feedback Hub P2: reporting view every 5 minutes (FH-854), debounced to one queued job.
+SELECT cron.schedule('pet-fh-reporting', '*/5 * * * *',
+  $cron$INSERT INTO core_job (id, kind, dedupe_key) VALUES (gen_random_uuid(), 'fh.reporting.refresh', 'fh.reporting.refresh')
+        ON CONFLICT (dedupe_key) WHERE state = 'queued' DO NOTHING$cron$);
+-- Materialised views are outside row level security; keep fh_reporting_mv away from the Data API roles.
+REVOKE ALL ON fh_reporting_mv FROM anon, authenticated;

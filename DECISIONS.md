@@ -137,3 +137,34 @@ Statement counts (PGlite, base and 10× fixture, identical): overlay 4 (PERF-B16
 **Timing budgets (PT-14, PT-18, D-27 end to end)**: `pnpm perf:p5 https://<deployment>` signs in with the demo button, builds self-labelled data (`[perf-p5] …` Features, ideas, a 40-card board with 40 detailed journeys of 50 cards, links), measures, and deletes all of it afterwards. Never the fixture on the live database.
 
 New dependencies: none. Operations: `pnpm db:migrate` before deploying P5 (migration `0006_jb_mapping`, independent of `0005`).
+
+## P2 Triage, intake, people and reporting: choices and deviations (27 Nov 2026)
+
+Flagged to the product owner per §0 rule 6. Migration `0005_fh_triage`.
+
+| Spec | Built | Why |
+|---|---|---|
+| ING-24 internal company (`intake.internal_company_id`) vs OD-22 | **OD-22 (a)**: internal calls credit the staff member (`staff_user_id` when a `core_user` has that email, else `meta.requesterName`), with **no company** and no external person. The internal-company setting is kept but unused | OD-22 was confirmed as (a); it overrides ING-24's default |
+| FH-405 "is not from an internal call" | New roll-up column `fh_idea_rollup.external_intake` (at least one Call or Support insight that is not an internal call). Company missing = `external_intake AND company_count = 0` | An idea with both an internal and an external call still shows "Company missing" when no company is known |
+| ING-22 "≤ 14 statements" | Measured for the accepted transaction (receipt, intake-key check, settings on a cache miss, lookup, prospect, person upsert, idea, history + activity in one statement, insight, links in one statement, files, roll-up, match job). The route budget is 19 including the gateway's key lookup, rate window, receipt check, log row and `last_used_at` | The spec's number reads as the transaction; the gateway steps are fixed per request |
+| Gateway hooks | `registerIntakeRoute` gained optional `prepare` (before the transaction: files), `discard` (failed, raced or duplicate) and a handler result `{duplicate, afterCommit}` | ING-25 needs files stored before rows and removed on a duplicate; ING-22 publishes after commit |
+| ING-16 unique-index violation | Insight insert is `ON CONFLICT (intake_key) DO NOTHING`; on a hit the just-inserted idea is deleted in the same transaction and the request answers 202 | A raised violation would abort the transaction and lose the receipt |
+| `core_setting` reads inside intake | `getSettings(db)` accepts the open transaction | A cache miss inside the transaction otherwise waits for a second connection (deadlocks PGlite's single connection; wastes a pool slot in production) |
+| `feedbackHub.erasePerson(personId)` (§11.4) | `erasePeople(personIds[])`, set-based, ≤ 8 statements for any batch, registered with a Core erasure registry (`registerErasureParticipant`). `POST fh/people/erase` runs the whole SEC-20 sequence inline for up to 100 people; a failure enqueues `core.erasure` and reports those ids in `failed[]` | ARC-02 prefers sets; the response must report `postsRecounted`. Unknown ids are reported as failed ("Not found.") |
+| SEC-20 vote events | Not touched | `fh_vote_event` arrives with votes in P3, which must add it to `erasePeople` |
+| SEC-20 support screenshots | Deleted, and `attachments` is removed from those insights' `meta` along with `requesterName`, `externalUserId`, `externalAccountId` | An insight never references a missing file (ING-25). OD-47 (a): words stay unattributed |
+| People list emails (FH-811, `GET people` "M read") | Emails only for feedback admins (`full=1`); members search by name only; pickers never return emails | Minimisation (SEC-22). Flagged |
+| Company and people lists | Offset pagination, 50 per page, total by window count, one statement | Simple and within PERF budgets at 5,000 / 50,000 rows; keyset can follow |
+| FH-801 idea count | Distinct live ideas whose evidence includes the company: company links, insight company, insight person's company, linked people's company, voters' company | The FH-504 evidence set |
+| FH-853 Feature ARR | ARR of distinct companies over the Feature subtree's open ideas, from company links and linked people's companies (votes not included) | Keeps the materialised view one pass; votes are rare on Feature-linked ideas before P3 |
+| FH-854 refresh | `fh_reporting_mv`, refreshed `CONCURRENTLY` by job `fh.reporting.refresh` (pg_cron every 5 minutes). `GET fh/reporting` also enqueues a debounced refresh when the view is older than 5 minutes | Works locally and if cron lags; the page still never recounts |
+| FH-852 chart | Top 7 themes in the validated categorical slots plus "Other", legend chips as the theme filter, focusable segments, and a table view | Colour follows the theme's overall rank, so filtering never repaints. Theme colours are not used for the chart: user-picked colours are not validated for contrast or colour-blind separation |
+| ING-20 error codes | `body_invalid`, `file_type_mismatch`, `file_type_not_allowed` added to the error envelope's codes | The spec names them |
+| Sanitiser | `src/modules/fh/text.ts` `sanitise` now delegates to `src/lib/text.ts` | One copy, as P4 asked |
+| Not built in P2 | FH-411 to FH-413 publish (P3); forum post images in Screenshots (P3); the console refusing ARR on the internal company (unused under OD-22 (a)); NFR-17 E2E journeys 2 and 8 and the axe pass (no Playwright harness, as P1) | |
+
+**Acceptance on PGlite:** FH-457 (resend after delete and after merge replays, never recreates), ING-16 (receipts lost), concurrent identical requests, INV-17 on every P2 delete path (insight delete, bulk idea delete, erasure, nightly sweep via the `fh/insight` owner resolver; merge keeps the file), erasure recounts `vote_count` and roll-ups, D-40 on the real route, PT-16 for every new route at 1× and 10×, PT-17's statement count. **Timing** (PT-17 ≤ 50 ms, ING-22 ≤ 250 ms): `pnpm perf:p2 https://<deployment>`; the intake check runs when `PERF_INGEST_KEY_ID` and `PERF_INGEST_SECRET` are set.
+
+New dependencies: none.
+
+Operations: `pnpm db:migrate` (migration `0005_fh_triage`) before deploying P2, then re-run `pnpm supabase:setup` to add the `pet-fh-reporting` cron (every 5 minutes) and revoke Data API access to `fh_reporting_mv`. To receive intake, create clients in the admin console with routes `call-requests` / `support-submissions`, record the gateway and client reviews, and issue keys; set `intake.staff_domains` so staff are never created as external people.

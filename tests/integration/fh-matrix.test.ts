@@ -31,6 +31,10 @@ describe('authorisation matrix (NFR-16)', () => {
     'DELETE journeys/[id]': undefined, 'POST themes': { name: 'x' }, 'PATCH themes/[id]': { name: 'x' }, 'DELETE themes/[id]': undefined,
     'POST milestones': { name: 'x', date: '2026-01-01' }, 'PATCH milestones/[id]': { name: 'x' }, 'DELETE milestones/[id]': undefined,
     'POST milestones/assign': { ids: [ID], milestoneId: null },
+    // P2
+    'POST companies': { name: 'x' }, 'PATCH companies/[id]': { name: 'x' }, 'POST companies/delete': { ids: [ID] },
+    'POST people': { displayName: 'x' }, 'PATCH people/[id]': { displayName: 'x' },
+    'POST people/erase': { ids: [ID], confirm: 'ERASE' },
   };
   const MEMBER: Record<string, unknown> = {
     'GET lookups': undefined, 'GET ideas': undefined, 'POST ideas': { title: 'x' }, 'GET ideas/facets': undefined,
@@ -39,6 +43,9 @@ describe('authorisation matrix (NFR-16)', () => {
     'GET roadmap': undefined, 'GET board': undefined, 'GET features': undefined, 'GET journeys': undefined, 'GET features/[id]/cards': undefined, 'GET journeys/[id]/cards': undefined, 'GET themes': undefined,
     'GET milestones': undefined, 'GET saved-views': undefined, 'POST saved-views': { name: 'x', config: { version: 1, view: 'all' } },
     'PATCH saved-views/[id]': { name: 'x' }, 'DELETE saved-views/[id]': undefined, 'GET companies': undefined, 'GET people': undefined,
+    // P2
+    'GET companies/[id]': undefined, 'GET people/[id]': undefined, 'GET reporting': undefined,
+    'GET ideas/triage-counts': undefined, 'GET ideas/[id]/images': undefined,
   };
   const root = join(process.cwd(), 'src', 'app', 'api', 'fh');
   const walk = (d: string): string[] => readdirSync(d).flatMap((f) => {

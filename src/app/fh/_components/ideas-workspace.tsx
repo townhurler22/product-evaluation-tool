@@ -21,6 +21,7 @@ import CreateIdeaDialog from './create-idea';
 import Roadmap from './roadmap';
 import Board from './board';
 import SavedViews from './saved-views';
+import TriageBar from './triage-bar';
 import { btn, btnPrimary, input } from './ui';
 import type { InfiniteData } from '@tanstack/react-query';
 
@@ -224,6 +225,7 @@ export default function IdeasWorkspace() {
       <div className="flex min-h-0 flex-1">
         <Rail lookups={lookups.data} state={rail} onChange={setRail} isAdmin={isAdmin} />
         <div className="flex min-w-0 flex-1 flex-col">
+          {view === 'triage' && <TriageBar spec={spec} filters={filters} onFilters={setFilters} isAdmin={isAdmin} onMessage={setNotice} />}
           {tableView && layout && (
             <IdeasTable
               view={view} spec={spec} lookups={lookups.data} layout={layout} onLayout={updateLayout}

@@ -23,6 +23,10 @@ export async function send(opts: {
     method: 'POST', headers, body: body.length ? body : undefined,
   });
   const res = await ingest(req, { params: Promise.resolve({ module: mod, route: opts.route }) });
+  // PT-16 guard: an intake route may not exceed its registered statement budget (NFR-21).
+  const budget = res.headers.get('x-statement-budget');
+  const used = Number(res.headers.get('x-statement-count') ?? 0);
+  if (budget !== null && used > Number(budget)) throw new Error(`statement budget exceeded: ${used} > ${budget} for ${path}`);
   const text = await res.text();
   return { status: res.status, body: text ? JSON.parse(text) : null, headers: res.headers };
 }
